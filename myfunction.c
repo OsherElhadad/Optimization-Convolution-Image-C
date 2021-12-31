@@ -45,14 +45,17 @@ static inline void initialize_pixel_sum(pixel_sum *sum) {
 static void assign_sum_to_pixel(pixel *current_pixel, pixel_sum sum, int kernelScale) {
 
 	// divide by kernel's weight
-	sum.red = sum.red / kernelScale;
-	sum.green = sum.green / kernelScale;
-	sum.blue = sum.blue / kernelScale;
+	int red = sum.red / kernelScale;
+	int green = sum.green / kernelScale;
+	int blue = sum.blue / kernelScale;
 
 	// truncate each pixel's color values to match the range [0,255]
-	current_pixel->red = (unsigned char) (min(max(sum.red, 0), 255));
-	current_pixel->green = (unsigned char) (min(max(sum.green, 0), 255));
-	current_pixel->blue = (unsigned char) (min(max(sum.blue, 0), 255));
+    int maxi = (red > 0 ? red : 0);
+	current_pixel->red = (unsigned char) (maxi < 255 ? maxi : 255);
+    maxi = (green > 0 ? green : 0);
+	current_pixel->green = (unsigned char) (maxi < 255 ? maxi : 255);
+    maxi = (blue > 0 ? blue : 0);
+	current_pixel->blue = (unsigned char) (maxi < 255 ? maxi : 255);
 	return;
 }
 
@@ -75,14 +78,19 @@ static inline void sum_pixels_by_weight(pixel_sum *sum, pixel p, int weight) {
  */
 static pixel applyKernel(int dim, int i, int j, pixel *src, int kernelSize, int kernel[kernelSize][kernelSize], int kernelScale, bool filter) {
 	int currRow, currCol;
-	pixel_sum sum;
+	//pixel_sum sum;
 	pixel current_pixel;
 	int min_intensity = 766; // arbitrary value that is higher than maximum possible intensity, which is 255*3=765
 	int max_intensity = -1; // arbitrary value that is lower than minimum possible intensity, which is 0
 	int min_row, min_col, max_row, max_col;
 	pixel loop_pixel;
 
-	initialize_pixel_sum(&sum);
+	//initialize_pixel_sum(&sum);
+
+    //*******************************************************************
+    // optimization- reduce using struct pixel_sum
+    //*******************************************************************
+    int red = 0, green = 0, blue = 0;
 
     int minIDim = min(i+1, dim-1), minJDim = min(j+1, dim-1);
 
@@ -130,9 +138,9 @@ static pixel applyKernel(int dim, int i, int j, pixel *src, int kernelSize, int 
             //*******************************************************************
             // optimization- reduce call to sum_pixel_by_weight
             //*******************************************************************
-            sum.red += ((int) p->red) * weight;
-            sum.green += ((int) p->green) * weight;
-            sum.blue += ((int) p->blue) * weight;
+            red += ((int) p->red) * weight;
+            green += ((int) p->green) * weight;
+            blue += ((int) p->blue) * weight;
 		}
 	}
 
@@ -179,9 +187,9 @@ static pixel applyKernel(int dim, int i, int j, pixel *src, int kernelSize, int 
         //*******************************************************************
         // optimization- reduce call to sum_pixel_by_weight
         //*******************************************************************
-        sum.red += ((int) p->red) * weight;
-        sum.green += ((int) p->green) * weight;
-        sum.blue += ((int) p->blue) * weight;
+        red += ((int) p->red) * weight;
+        green += ((int) p->green) * weight;
+        blue += ((int) p->blue) * weight;
 
         //*******************************************************************
         // optimization- reduce call to calcIndex
@@ -191,9 +199,9 @@ static pixel applyKernel(int dim, int i, int j, pixel *src, int kernelSize, int 
         //*******************************************************************
         // optimization- reduce call to sum_pixel_by_weight
         //*******************************************************************
-        sum.red += ((int) p->red) * weight;
-        sum.green += ((int) p->green) * weight;
-        sum.blue += ((int) p->blue) * weight;
+        red += ((int) p->red) * weight;
+        green += ((int) p->green) * weight;
+        blue += ((int) p->blue) * weight;
 	}
 
     //*******************************************************************
@@ -202,14 +210,14 @@ static pixel applyKernel(int dim, int i, int j, pixel *src, int kernelSize, int 
 	// assign kernel's result to pixel at [i,j]
 
     // divide by kernel's weight
-    sum.red = sum.red / kernelScale;
-    sum.green = sum.green / kernelScale;
-    sum.blue = sum.blue / kernelScale;
+    red = red / kernelScale;
+    green = green / kernelScale;
+    blue = blue / kernelScale;
 
     // truncate each pixel's color values to match the range [0,255]
-    current_pixel.red = (unsigned char) (min(max(sum.red, 0), 255));
-    current_pixel.green = (unsigned char) (min(max(sum.green, 0), 255));
-    current_pixel.blue = (unsigned char) (min(max(sum.blue, 0), 255));
+    current_pixel.red = (unsigned char) (min(max(red, 0), 255));
+    current_pixel.green = (unsigned char) (min(max(green, 0), 255));
+    current_pixel.blue = (unsigned char) (min(max(blue, 0), 255));
 	return current_pixel;
 }
 

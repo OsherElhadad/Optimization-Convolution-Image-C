@@ -65,9 +65,11 @@ void writeBMP(Image *image, const char* originalImgFileName, const char* fileNam
 		* remember that the order is BGR
 		*/
 
+        //*******************************************************************
+        // optimization- calculate (line*bytesPerLine) before the loop
+        //*******************************************************************
         int bytesLine = line*bytesPerLine;
 		for (i = 0 ; i < bytesPerLine ; i += 3) {
-
 			linebuf[i] = iData[bytesLine + i + 2];
 			linebuf[i + 1] = iData[bytesLine + i  + 1];
 			linebuf[i + 2] = iData[bytesLine + i];
