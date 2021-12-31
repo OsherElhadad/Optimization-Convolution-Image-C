@@ -100,6 +100,9 @@ static pixel applyKernel(int dim, int i, int j, pixel *src, int kernelSize, int 
             kRow = 1;
         }
 
+        //*******************************************************************
+        // optimization- reduce multiple ii*dim
+        //*******************************************************************
         int dimMulII = ii*dim;
 		for(jj = max(j-1, 0); jj <= minJDim; jj++) {
 
@@ -117,11 +120,16 @@ static pixel applyKernel(int dim, int i, int j, pixel *src, int kernelSize, int 
 			// apply kernel on pixel at [ii,jj]
 			//sum_pixels_by_weight(&sum, src[calcIndex(ii, jj, dim)], kernel[kRow][kCol]);
 
+            int weight = kernel[kRow][kCol];
+
+            //*******************************************************************
+            // optimization- reduce call to calcIndex
+            //*******************************************************************
+            pixel* p = &src[(dimMulII + jj)];
+
             //*******************************************************************
             // optimization- reduce call to sum_pixel_by_weight
             //*******************************************************************
-            int weight = kernel[kRow][kCol];
-            pixel* p = &src[(dimMulII + jj)];
             sum.red += ((int) p->red) * weight;
             sum.green += ((int) p->green) * weight;
             sum.blue += ((int) p->blue) * weight;
@@ -131,25 +139,61 @@ static pixel applyKernel(int dim, int i, int j, pixel *src, int kernelSize, int 
 	if (filter) {
 		// find min and max coordinates
 		for(ii = max(i-1, 0); ii <= minIDim; ii++) {
+
+            //*******************************************************************
+            // optimization- reduce multiple ii*dim
+            //*******************************************************************
             int dimMulII = ii*dim;
 			for(jj = max(j-1, 0); jj <= minJDim; jj++) {
 				// check if smaller than min or higher than max and update
+                //*******************************************************************
+                // optimization- reduce call to calcIndex
+                //*******************************************************************
 				loop_pixel = src[(dimMulII + jj)];
-				if ((((int) loop_pixel.red) + ((int) loop_pixel.green) + ((int) loop_pixel.blue)) <= min_intensity) {
-					min_intensity = (((int) loop_pixel.red) + ((int) loop_pixel.green) + ((int) loop_pixel.blue));
+
+                //*******************************************************************
+                // optimization- reduce calculate of sums from 4 times to one.
+                //*******************************************************************
+                int sums = (((int) loop_pixel.red) + ((int) loop_pixel.green) + ((int) loop_pixel.blue));
+				if (sums <= min_intensity) {
+					min_intensity = sums;
 					min_row = ii;
 					min_col = jj;
 				}
-				if ((((int) loop_pixel.red) + ((int) loop_pixel.green) + ((int) loop_pixel.blue)) > max_intensity) {
-					max_intensity = (((int) loop_pixel.red) + ((int) loop_pixel.green) + ((int) loop_pixel.blue));
+				if (sums > max_intensity) {
+					max_intensity = sums;
 					max_row = ii;
 					max_col = jj;
 				}
 			}
 		}
-		// filter out min and max
-		sum_pixels_by_weight(&sum, src[calcIndex(min_row, min_col, dim)], -1);
-		sum_pixels_by_weight(&sum, src[calcIndex(max_row, max_col, dim)], -1);
+
+        // filter out min and max
+        int weight = -1;
+
+        //*******************************************************************
+        // optimization- reduce call to calcIndex
+        //*******************************************************************
+        pixel* p = &src[(min_row*dim + min_col)];
+
+        //*******************************************************************
+        // optimization- reduce call to sum_pixel_by_weight
+        //*******************************************************************
+        sum.red += ((int) p->red) * weight;
+        sum.green += ((int) p->green) * weight;
+        sum.blue += ((int) p->blue) * weight;
+
+        //*******************************************************************
+        // optimization- reduce call to calcIndex
+        //*******************************************************************
+        p = &src[(max_row*dim + max_col)];
+
+        //*******************************************************************
+        // optimization- reduce call to sum_pixel_by_weight
+        //*******************************************************************
+        sum.red += ((int) p->red) * weight;
+        sum.green += ((int) p->green) * weight;
+        sum.blue += ((int) p->blue) * weight;
 	}
 
     //*******************************************************************
