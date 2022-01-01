@@ -6,12 +6,12 @@ typedef struct {
    unsigned char blue;
 } pixel;
 
-typedef struct {
-    int red;
-    int green;
-    int blue;
-    // int num;
-} pixel_sum;
+//typedef struct {
+//    int red;
+//    int green;
+//    int blue;
+//    // int num;
+//} pixel_sum;
 
 //*******************************************************************
 // optimization- inline function, reduce call to min/max on the stack
@@ -291,21 +291,16 @@ void smooth(pixel *src, pixel *dst, int kernelSize, int kernel[kernelSize][kerne
     int until = m - halfKernel;
 
     //*******************************************************************
-    // optimization- calculate (row*n) only once every row
+    // optimization- calculate pointer add 1 without calculate index
     //*******************************************************************
-    int dimMulI = i*m;
-	for (; i < until; i++) {
-
-        //*******************************************************************
-        // optimization- calculate (rowN + col) only once
-        //*******************************************************************
-        j =  halfKernel;
-        int dimAddJ = j;
-		for (; j < until ; j++) {
-			dst[dimAddJ] = applyKernel(i, j, src, kernelSize, kernel, kernelScale, filter);
-            dimAddJ++;
+    dst += halfKernel*m;
+	for (i = halfKernel; i < until; i++) {
+        dst += halfKernel;
+		for (j =  halfKernel; j < until ; j++) {
+            (*dst) = applyKernel(i, j, src, kernelSize, kernel, kernelScale, filter);
+            dst++;
 		}
-        dimMulI += m;
+        dst += halfKernel;
 	}
 }
 
@@ -364,11 +359,11 @@ void pixelsToChars(pixel* pixels, Image *charsImg) {
     unsigned long nm = n*m;
     char *data = image->data;
     for (int i = 0; i < nm ; i++) {
-        data = &(*pixels).red;
+        *data = pixels->red;
         data++;
-        data = &(*pixels).green;
+        *data = pixels->green;
         data++;
-        data = &(*pixels).blue;
+        *data = pixels->blue;
         data++;
         pixels++;
     }
