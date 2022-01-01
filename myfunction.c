@@ -77,7 +77,6 @@ static inline int max(int a, int b) { return (a > b ? a : b); }
  *  Applies kernel for pixel at (i,j)
  */
 static pixel applyKernel(int i, int j, pixel *src, int kernelSize, int kernel[kernelSize][kernelSize], int kernelScale, bool filter) {
-	int currRow, currCol;
 	//pixel_sum sum;
 	pixel current_pixel;
 	int min_intensity = 766; // arbitrary value that is higher than maximum possible intensity, which is 255*3=765
@@ -284,12 +283,12 @@ static pixel applyKernel(int i, int j, pixel *src, int kernelSize, int kernel[ke
 */
 void smooth(pixel *src, pixel *dst, int kernelSize, int kernel[kernelSize][kernelSize], int kernelScale, bool filter) {
 
-	int i = kernelSize / 2, j;
+	int halfKernel = kernelSize / 2, i = halfKernel, j;
 
     //*******************************************************************
     // optimization- calculate (dim - kernelSize / 2) before the loop
     //*******************************************************************
-    int until = m - kernelSize / 2;
+    int until = m - halfKernel;
 
     //*******************************************************************
     // optimization- calculate (row*n) only once every row
@@ -300,7 +299,7 @@ void smooth(pixel *src, pixel *dst, int kernelSize, int kernel[kernelSize][kerne
         //*******************************************************************
         // optimization- calculate (rowN + col) only once
         //*******************************************************************
-        j =  kernelSize / 2;
+        j =  halfKernel;
         int dimAddJ = j;
 		for (; j < until ; j++) {
 			dst[dimAddJ] = applyKernel(i, j, src, kernelSize, kernel, kernelScale, filter);
