@@ -76,7 +76,7 @@ static inline int max(int a, int b) { return (a > b ? a : b); }
 /*
  *  Applies kernel for pixel at (i,j)
  */
-static pixel applyKernel(int i, int j, pixel *src, int kernelSize, int kernel[kernelSize][kernelSize], int kernelScale, bool filter) {
+static pixel applyKernel(int i, int j, pixel *src, int kernel[3], int kernelScale, bool filter) {
     //pixel_sum sum;
     pixel current_pixel;
     int min_intensity = 766; // arbitrary value that is higher than maximum possible intensity, which is 255*3=765
@@ -99,21 +99,17 @@ static pixel applyKernel(int i, int j, pixel *src, int kernelSize, int kernel[ke
     //*******************************************************************
     if (!filter) {
 
-        // compute row index in kernel
-        int kRow = 0;
-        for (ii = i-1; ii <= i+1; ii++) {
+        for (; ii <= i+1; ii++) {
 
             jj = j-1;
             int dimAddJJ = dimMulII + jj;
 
-            // compute column index in kernel
-            int kCol = 0;
-            for (jj = j-1; jj <= j+1; jj++) {
+            for (; jj <= j+1; jj++) {
 
                 // apply kernel on pixel at [ii,jj]
                 //sum_pixels_by_weight(&sum, src[calcIndex(ii, jj, dim)], kernel[kRow][kCol]);
 
-                int weight = kernel[kRow][kCol];
+                int weight = (*kernel);
 
                 //*******************************************************************
                 // optimization- reduce call to calcIndex
@@ -128,9 +124,8 @@ static pixel applyKernel(int i, int j, pixel *src, int kernelSize, int kernel[ke
                 blue += ((int) p->blue) * weight;
 
                 dimAddJJ++;
-                kCol++;
+                kernel++;
             }
-            kRow++;
 
             //*******************************************************************
             // optimization- reduce multiple ii*dim
@@ -139,22 +134,18 @@ static pixel applyKernel(int i, int j, pixel *src, int kernelSize, int kernel[ke
         }
     } else {
 
-        // compute row index in kernel
-        int kRow = 0;
-
         // find min and max coordinates
-        for (ii = i-1; ii <= i+1; ii++) {
+        for (; ii <= i+1; ii++) {
 
             jj = j-1;
             int dimAddJJ = dimMulII + jj;
-            // compute column index in kernel
-            int kCol = 0;
-            for (jj = j-1; jj <= j+1; jj++) {
+
+            for (; jj <= j+1; jj++) {
 
                 // apply kernel on pixel at [ii,jj]
                 //sum_pixels_by_weight(&sum, src[calcIndex(ii, jj, dim)], kernel[kRow][kCol]);
 
-                int weight = kernel[kRow][kCol];
+                int weight = (*kernel);
 
                 //*******************************************************************
                 // optimization- reduce call to calcIndex
@@ -185,9 +176,8 @@ static pixel applyKernel(int i, int j, pixel *src, int kernelSize, int kernel[ke
                     max_col = jj;
                 }
                 dimAddJJ++;
-                kCol++;
+                kernel++;
             }
-            kRow++;
 
             //*******************************************************************
             // optimization- reduce multiple ii*dim
@@ -251,26 +241,26 @@ static pixel applyKernel(int i, int j, pixel *src, int kernelSize, int kernel[ke
 * Ignore pixels where the kernel exceeds bounds. These are pixels with row index smaller than kernelSize/2 and/or
 * column index smaller than kernelSize/2
 */
-void smooth(pixel *src, pixel *dst, int kernelSize, int kernel[kernelSize][kernelSize], int kernelScale, bool filter) {
+void smooth(pixel *src, pixel *dst, int kernel[3], int kernelScale, bool filter) {
 
-	int halfKernel = kernelSize / 2, i = halfKernel, j;
+	int i, j;
 
     //*******************************************************************
     // optimization- calculate (dim - kernelSize / 2) before the loop
     //*******************************************************************
-    int until = m - halfKernel;
+    int until = m - 1;
 
     //*******************************************************************
     // optimization- calculate pointer add 1 without calculate index
     //*******************************************************************
-    dst += halfKernel*m;
-	for (i = halfKernel; i < until; i++) {
-        dst += halfKernel;
-		for (j =  halfKernel; j < until ; j++) {
-            (*dst) = applyKernel(i, j, src, kernelSize, kernel, kernelScale, filter);
+    dst += m;
+	for (i = 1; i < until; i++) {
+        dst++;
+		for (j =  1; j < until ; j++) {
+            (*dst) = applyKernel(i, j, src, kernel, kernelScale, filter);
             dst++;
 		}
-        dst += halfKernel;
+        dst++;
 	}
 }
 
@@ -387,7 +377,7 @@ void pixelsToChars(pixel* pixels, Image *charsImg) {
 //	}
 //}
 
-void doConvolution(Image *image, int kernelSize, int kernel[kernelSize][kernelSize], int kernelScale, bool filter) {
+void doConvolution(Image *image, int kernel[3], int kernelScale, bool filter) {
 
 	pixel* pixelsImg = malloc(m*n*sizeof(pixel));
 	pixel* backupOrg = malloc(m*n*sizeof(pixel));
@@ -395,7 +385,7 @@ void doConvolution(Image *image, int kernelSize, int kernel[kernelSize][kernelSi
 	charsToPixels2(image, pixelsImg, backupOrg);
 	//copyPixels(pixelsImg, backupOrg);
 
-	smooth(backupOrg, pixelsImg, kernelSize, kernel, kernelScale, filter);
+	smooth(backupOrg, pixelsImg, kernel, kernelScale, filter);
 
 	pixelsToChars(pixelsImg, image);
 
@@ -405,41 +395,44 @@ void doConvolution(Image *image, int kernelSize, int kernel[kernelSize][kernelSi
 
 void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sharpRsltImgName, char* filteredBlurRsltImgName, char* filteredSharpRsltImgName, char flag) {
 
+    //*******************************************************************
+    // optimization- use cache by define array and not matrix
+    //*******************************************************************
 	/*
 	* [1, 1, 1]
 	* [1, 1, 1]
 	* [1, 1, 1]
 	*/
-	int blurKernel[3][3] = {{1, 1, 1}, {1, 1, 1}, {1, 1, 1}};
+	int blurKernel[9] = {1, 1, 1, 1, 1, 1, 1, 1, 1};
 
 	/*
 	* [-1, -1, -1]
 	* [-1, 9, -1]
 	* [-1, -1, -1]
 	*/
-	int sharpKernel[3][3] = {{-1,-1,-1},{-1,9,-1},{-1,-1,-1}};
+	int sharpKernel[9] = {-1,-1,-1,-1,9,-1,-1,-1,-1};
 
 	if (flag == '1') {	
 		// blur image
-		doConvolution(image, 3, blurKernel, 9, false);
+		doConvolution(image, blurKernel, 9, false);
 
 		// write result image to file
 		writeBMP(image, srcImgpName, blurRsltImgName);	
 
 		// sharpen the resulting image
-		doConvolution(image, 3, sharpKernel, 1, false);
+		doConvolution(image, sharpKernel, 1, false);
 		
 		// write result image to file
 		writeBMP(image, srcImgpName, sharpRsltImgName);	
 	} else {
 		// apply extermum filtered kernel to blur image
-		doConvolution(image, 3, blurKernel, 7, true);
+		doConvolution(image, blurKernel, 7, true);
 
 		// write result image to file
 		writeBMP(image, srcImgpName, filteredBlurRsltImgName);
 
 		// sharpen the resulting image
-		doConvolution(image, 3, sharpKernel, 1, false);
+		doConvolution(image, sharpKernel, 1, false);
 
 		// write result image to file
 		writeBMP(image, srcImgpName, filteredSharpRsltImgName);	
