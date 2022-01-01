@@ -77,55 +77,38 @@ static inline int max(int a, int b) { return (a > b ? a : b); }
  *  Applies kernel for pixel at (i,j)
  */
 static pixel applyKernel(int i, int j, pixel *src, int kernelSize, int kernel[kernelSize][kernelSize], int kernelScale, bool filter) {
-	//pixel_sum sum;
-	pixel current_pixel;
-	int min_intensity = 766; // arbitrary value that is higher than maximum possible intensity, which is 255*3=765
-	int max_intensity = -1; // arbitrary value that is lower than minimum possible intensity, which is 0
-	int min_row, min_col, max_row, max_col;
-	//pixel loop_pixel;
+    //pixel_sum sum;
+    pixel current_pixel;
+    int min_intensity = 766; // arbitrary value that is higher than maximum possible intensity, which is 255*3=765
+    int max_intensity = -1; // arbitrary value that is lower than minimum possible intensity, which is 0
+    int min_row, min_col, max_row, max_col;
+    //pixel loop_pixel;
 
-	//initialize_pixel_sum(&sum);
+    //initialize_pixel_sum(&sum);
 
     //*******************************************************************
     // optimization- reduce using struct pixel_sum
     //*******************************************************************
     int red = 0, green = 0, blue = 0;
 
-    int minIDim = min(i+1, m-1), minJDim = min(j+1, m-1);
-
-    int ii = max(i-1, 0), jj;
+    int ii= i-1, jj = j-1;
     int dimMulII = ii*m;
 
     //*******************************************************************
     // optimization- reduce multiple loops
     //*******************************************************************
     if (!filter) {
-        for (; ii <= minIDim; ii++) {
-            int kRow;
 
-            // compute row index in kernel
-            if (ii < i) {
-                kRow = 0;
-            } else if (ii > i) {
-                kRow = 2;
-            } else {
-                kRow = 1;
-            }
+        // compute row index in kernel
+        int kRow = 0;
+        for (ii = i-1; ii <= i+1; ii++) {
 
-            jj = max(j - 1, 0);
+            jj = j-1;
             int dimAddJJ = dimMulII + jj;
-            for (; jj <= minJDim; jj++) {
 
-                int kCol;
-
-                // compute column index in kernel
-                if (jj < j) {
-                    kCol = 0;
-                } else if (jj > j) {
-                    kCol = 2;
-                } else {
-                    kCol = 1;
-                }
+            // compute column index in kernel
+            int kCol = 0;
+            for (jj = j-1; jj <= j+1; jj++) {
 
                 // apply kernel on pixel at [ii,jj]
                 //sum_pixels_by_weight(&sum, src[calcIndex(ii, jj, dim)], kernel[kRow][kCol]);
@@ -145,7 +128,9 @@ static pixel applyKernel(int i, int j, pixel *src, int kernelSize, int kernel[ke
                 blue += ((int) p->blue) * weight;
 
                 dimAddJJ++;
+                kCol++;
             }
+            kRow++;
 
             //*******************************************************************
             // optimization- reduce multiple ii*dim
@@ -154,34 +139,17 @@ static pixel applyKernel(int i, int j, pixel *src, int kernelSize, int kernel[ke
         }
     } else {
 
-		// find min and max coordinates
-		for(; ii <= minIDim; ii++) {
+        // compute row index in kernel
+        int kRow = 0;
 
-            int kRow;
+        // find min and max coordinates
+        for (ii = i-1; ii <= i+1; ii++) {
 
-            // compute row index in kernel
-            if (ii < i) {
-                kRow = 0;
-            } else if (ii > i) {
-                kRow = 2;
-            } else {
-                kRow = 1;
-            }
-
-            jj = max(j-1, 0);
+            jj = j-1;
             int dimAddJJ = dimMulII + jj;
-			for(; jj <= minJDim; jj++) {
-
-                int kCol;
-
-                // compute column index in kernel
-                if (jj < j) {
-                    kCol = 0;
-                } else if (jj > j) {
-                    kCol = 2;
-                } else {
-                    kCol = 1;
-                }
+            // compute column index in kernel
+            int kCol = 0;
+            for (jj = j-1; jj <= j+1; jj++) {
 
                 // apply kernel on pixel at [ii,jj]
                 //sum_pixels_by_weight(&sum, src[calcIndex(ii, jj, dim)], kernel[kRow][kCol]);
@@ -200,30 +168,32 @@ static pixel applyKernel(int i, int j, pixel *src, int kernelSize, int kernel[ke
                 green += ((int) p->green) * weight;
                 blue += ((int) p->blue) * weight;
 
-				// check if smaller than min or higher than max and update
+                // check if smaller than min or higher than max and update
 
                 //*******************************************************************
                 // optimization- reduce calculate of sums from 4 times to one.
                 //*******************************************************************
                 int sums = (((int) p->red) + ((int) p->green) + ((int) p->blue));
-				if (sums <= min_intensity) {
-					min_intensity = sums;
-					min_row = ii;
-					min_col = jj;
-				}
-				if (sums > max_intensity) {
-					max_intensity = sums;
-					max_row = ii;
-					max_col = jj;
-				}
+                if (sums <= min_intensity) {
+                    min_intensity = sums;
+                    min_row = ii;
+                    min_col = jj;
+                }
+                if (sums > max_intensity) {
+                    max_intensity = sums;
+                    max_row = ii;
+                    max_col = jj;
+                }
                 dimAddJJ++;
-			}
+                kCol++;
+            }
+            kRow++;
 
             //*******************************************************************
             // optimization- reduce multiple ii*dim
             //*******************************************************************
             dimMulII += m;
-		}
+        }
 
         // filter out min and max
         int weight = -1;
@@ -251,12 +221,12 @@ static pixel applyKernel(int i, int j, pixel *src, int kernelSize, int kernel[ke
         red += ((int) p->red) * weight;
         green += ((int) p->green) * weight;
         blue += ((int) p->blue) * weight;
-	}
+    }
 
     //*******************************************************************
     // optimization- reduce call to assign_sum_to_pixel on the stack
     //*******************************************************************
-	// assign kernel's result to pixel at [i,j]
+    // assign kernel's result to pixel at [i,j]
 
     // divide by kernel's weight
     red = red / kernelScale;
@@ -273,7 +243,7 @@ static pixel applyKernel(int i, int j, pixel *src, int kernelSize, int kernel[ke
     current_pixel.green = (unsigned char) (maxi < 255 ? maxi : 255);
     maxi = (blue > 0 ? blue : 0);
     current_pixel.blue = (unsigned char) (maxi < 255 ? maxi : 255);
-	return current_pixel;
+    return current_pixel;
 }
 
 /*
