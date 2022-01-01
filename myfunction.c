@@ -19,8 +19,8 @@ typedef struct {
 // optimization- inline function, reduce call to min/max on the stack
 //*******************************************************************
 /* Compute min and max of two integers, respectively */
-static inline int min(int a, int b) { return (a < b ? a : b); }
-static inline int max(int a, int b) { return (a > b ? a : b); }
+//static inline int min(int a, int b) { return (a < b ? a : b); }
+//static inline int max(int a, int b) { return (a > b ? a : b); }
 
 //*******************************************************************
 // optimization- inline function, reduce call to calcIndex on the stack
@@ -78,192 +78,258 @@ static inline int max(int a, int b) { return (a > b ? a : b); }
 /*
  *  Applies kernel for pixel at (i,j)
  */
-static pixel applyKernel(int i, int j, pixel *src, int kernel[3], int kernelScale, bool filter) {
-    //pixel_sum sum;
-    pixel current_pixel;
-    int min_intensity = 766; // arbitrary value that is higher than maximum possible intensity, which is 255*3=765
-    int max_intensity = -1; // arbitrary value that is lower than minimum possible intensity, which is 0
-    int min_row, min_col, max_row, max_col;
-    //pixel loop_pixel;
-
-    //initialize_pixel_sum(&sum);
-
-    //*******************************************************************
-    // optimization- reduce using struct pixel_sum
-    //*******************************************************************
-    int red = 0, green = 0, blue = 0;
-
-    int ii= i-1, jj = j-1;
-    int dimMulII = ii*m;
-
-    //*******************************************************************
-    // optimization- reduce multiple loops
-    //*******************************************************************
-    if (!filter) {
-
-        for (; ii <= i+1; ii++) {
-
-            jj = j-1;
-            int dimAddJJ = dimMulII + jj;
-
-            for (; jj <= j+1; jj++) {
-
-                // apply kernel on pixel at [ii,jj]
-                //sum_pixels_by_weight(&sum, src[calcIndex(ii, jj, dim)], kernel[kRow][kCol]);
-
-                int weight = (*kernel);
-
-                //*******************************************************************
-                // optimization- reduce call to calcIndex
-                //*******************************************************************
-                pixel *p = &src[dimAddJJ];
-
-                //*******************************************************************
-                // optimization- reduce call to sum_pixel_by_weight
-                //*******************************************************************
-                red += ((int) p->red) * weight;
-                green += ((int) p->green) * weight;
-                blue += ((int) p->blue) * weight;
-
-                dimAddJJ++;
-                kernel++;
-            }
-
-            //*******************************************************************
-            // optimization- reduce multiple ii*dim
-            //*******************************************************************
-            dimMulII += m;
-        }
-    } else {
-
-        // find min and max coordinates
-        for (; ii <= i+1; ii++) {
-
-            jj = j-1;
-            int dimAddJJ = dimMulII + jj;
-
-            for (; jj <= j+1; jj++) {
-
-                // apply kernel on pixel at [ii,jj]
-                //sum_pixels_by_weight(&sum, src[calcIndex(ii, jj, dim)], kernel[kRow][kCol]);
-
-                int weight = (*kernel);
-
-                //*******************************************************************
-                // optimization- reduce call to calcIndex
-                //*******************************************************************
-                pixel *p = &src[dimAddJJ];
-
-                //*******************************************************************
-                // optimization- reduce call to sum_pixel_by_weight
-                //*******************************************************************
-                red += ((int) p->red) * weight;
-                green += ((int) p->green) * weight;
-                blue += ((int) p->blue) * weight;
-
-                // check if smaller than min or higher than max and update
-
-                //*******************************************************************
-                // optimization- reduce calculate of sums from 4 times to one.
-                //*******************************************************************
-                int sums = (((int) p->red) + ((int) p->green) + ((int) p->blue));
-                if (sums <= min_intensity) {
-                    min_intensity = sums;
-                    min_row = ii;
-                    min_col = jj;
-                }
-                if (sums > max_intensity) {
-                    max_intensity = sums;
-                    max_row = ii;
-                    max_col = jj;
-                }
-                dimAddJJ++;
-                kernel++;
-            }
-
-            //*******************************************************************
-            // optimization- reduce multiple ii*dim
-            //*******************************************************************
-            dimMulII += m;
-        }
-
-        // filter out min and max
-        int weight = -1;
-
-        //*******************************************************************
-        // optimization- reduce call to calcIndex
-        //*******************************************************************
-        pixel* p = &src[(min_row*m + min_col)];
-
-        //*******************************************************************
-        // optimization- reduce call to sum_pixel_by_weight
-        //*******************************************************************
-        red += ((int) p->red) * weight;
-        green += ((int) p->green) * weight;
-        blue += ((int) p->blue) * weight;
-
-        //*******************************************************************
-        // optimization- reduce call to calcIndex
-        //*******************************************************************
-        p = &src[(max_row*m + max_col)];
-
-        //*******************************************************************
-        // optimization- reduce call to sum_pixel_by_weight
-        //*******************************************************************
-        red += ((int) p->red) * weight;
-        green += ((int) p->green) * weight;
-        blue += ((int) p->blue) * weight;
-    }
-
-    //*******************************************************************
-    // optimization- reduce call to assign_sum_to_pixel on the stack
-    //*******************************************************************
-    // assign kernel's result to pixel at [i,j]
-
-    // divide by kernel's weight
-    red = red / kernelScale;
-    green = green / kernelScale;
-    blue = blue / kernelScale;
-
-    //*******************************************************************
-    // optimization- reduce call to max and min on the stack
-    //*******************************************************************
-    // truncate each pixel's color values to match the range [0,255]
-    int maxi = (red > 0 ? red : 0);
-    current_pixel.red = (unsigned char) (maxi < 255 ? maxi : 255);
-    maxi = (green > 0 ? green : 0);
-    current_pixel.green = (unsigned char) (maxi < 255 ? maxi : 255);
-    maxi = (blue > 0 ? blue : 0);
-    current_pixel.blue = (unsigned char) (maxi < 255 ? maxi : 255);
-    return current_pixel;
-}
+//static pixel applyKernel(int i, int j, pixel *src, int kernel[3], int kernelScale, bool filter) {
+//    //pixel_sum sum;
+//    pixel current_pixel;
+//    int min_intensity = 766; // arbitrary value that is higher than maximum possible intensity, which is 255*3=765
+//    int max_intensity = -1; // arbitrary value that is lower than minimum possible intensity, which is 0
+//    int min_row, min_col, max_row, max_col;
+//    //pixel loop_pixel;
+//
+//    //initialize_pixel_sum(&sum);
+//
+//    //*******************************************************************
+//    // optimization- reduce using struct pixel_sum
+//    //*******************************************************************
+//    int red = 0, green = 0, blue = 0;
+//
+//    int ii= i-1, jj = j-1;
+//    int dimMulII = ii*m;
+//
+//    //*******************************************************************
+//    // optimization- reduce multiple loops
+//    //*******************************************************************
+//    if (!filter) {
+//
+//        for (; ii <= i+1; ii++) {
+//
+//            jj = j-1;
+//            int dimAddJJ = dimMulII + jj;
+//
+//            for (; jj <= j+1; jj++) {
+//
+//                // apply kernel on pixel at [ii,jj]
+//                //sum_pixels_by_weight(&sum, src[calcIndex(ii, jj, dim)], kernel[kRow][kCol]);
+//
+//                int weight = (*kernel);
+//
+//                //*******************************************************************
+//                // optimization- reduce call to calcIndex
+//                //*******************************************************************
+//                pixel *p = &src[dimAddJJ];
+//
+//                //*******************************************************************
+//                // optimization- reduce call to sum_pixel_by_weight
+//                //*******************************************************************
+//                red += ((int) p->red) * weight;
+//                green += ((int) p->green) * weight;
+//                blue += ((int) p->blue) * weight;
+//
+//                dimAddJJ++;
+//                kernel++;
+//            }
+//
+//            //*******************************************************************
+//            // optimization- reduce multiple ii*dim
+//            //*******************************************************************
+//            dimMulII += m;
+//        }
+//    } else {
+//
+//        // find min and max coordinates
+//        for (; ii <= i+1; ii++) {
+//
+//            jj = j-1;
+//            int dimAddJJ = dimMulII + jj;
+//
+//            for (; jj <= j+1; jj++) {
+//
+//                // apply kernel on pixel at [ii,jj]
+//                //sum_pixels_by_weight(&sum, src[calcIndex(ii, jj, dim)], kernel[kRow][kCol]);
+//
+//                int weight = (*kernel);
+//
+//                //*******************************************************************
+//                // optimization- reduce call to calcIndex
+//                //*******************************************************************
+//                pixel *p = &src[dimAddJJ];
+//
+//                //*******************************************************************
+//                // optimization- reduce call to sum_pixel_by_weight
+//                //*******************************************************************
+//                red += ((int) p->red) * weight;
+//                green += ((int) p->green) * weight;
+//                blue += ((int) p->blue) * weight;
+//
+//                // check if smaller than min or higher than max and update
+//
+//                //*******************************************************************
+//                // optimization- reduce calculate of sums from 4 times to one.
+//                //*******************************************************************
+//                int sums = (((int) p->red) + ((int) p->green) + ((int) p->blue));
+//                if (sums <= min_intensity) {
+//                    min_intensity = sums;
+//                    min_row = ii;
+//                    min_col = jj;
+//                }
+//                if (sums > max_intensity) {
+//                    max_intensity = sums;
+//                    max_row = ii;
+//                    max_col = jj;
+//                }
+//                dimAddJJ++;
+//                kernel++;
+//            }
+//
+//            //*******************************************************************
+//            // optimization- reduce multiple ii*dim
+//            //*******************************************************************
+//            dimMulII += m;
+//        }
+//
+//        // filter out min and max
+//        int weight = -1;
+//
+//        //*******************************************************************
+//        // optimization- reduce call to calcIndex
+//        //*******************************************************************
+//        pixel* p = &src[(min_row*m + min_col)];
+//
+//        //*******************************************************************
+//        // optimization- reduce call to sum_pixel_by_weight
+//        //*******************************************************************
+//        red += ((int) p->red) * weight;
+//        green += ((int) p->green) * weight;
+//        blue += ((int) p->blue) * weight;
+//
+//        //*******************************************************************
+//        // optimization- reduce call to calcIndex
+//        //*******************************************************************
+//        p = &src[(max_row*m + max_col)];
+//
+//        //*******************************************************************
+//        // optimization- reduce call to sum_pixel_by_weight
+//        //*******************************************************************
+//        red += ((int) p->red) * weight;
+//        green += ((int) p->green) * weight;
+//        blue += ((int) p->blue) * weight;
+//    }
+//
+//    //*******************************************************************
+//    // optimization- reduce call to assign_sum_to_pixel on the stack
+//    //*******************************************************************
+//    // assign kernel's result to pixel at [i,j]
+//
+//    // divide by kernel's weight
+//    red = red / kernelScale;
+//    green = green / kernelScale;
+//    blue = blue / kernelScale;
+//
+//    //*******************************************************************
+//    // optimization- reduce call to max and min on the stack
+//    //*******************************************************************
+//    // truncate each pixel's color values to match the range [0,255]
+//    int maxi = (red > 0 ? red : 0);
+//    current_pixel.red = (unsigned char) (maxi < 255 ? maxi : 255);
+//    maxi = (green > 0 ? green : 0);
+//    current_pixel.green = (unsigned char) (maxi < 255 ? maxi : 255);
+//    maxi = (blue > 0 ? blue : 0);
+//    current_pixel.blue = (unsigned char) (maxi < 255 ? maxi : 255);
+//    return current_pixel;
+//}
 
 /*
 * Apply the kernel over each pixel.
 * Ignore pixels where the kernel exceeds bounds. These are pixels with row index smaller than kernelSize/2 and/or
 * column index smaller than kernelSize/2
 */
-void smooth(pixel *src, pixel *dst, int kernel[3], int kernelScale, bool filter) {
+//void smooth(pixel *src, pixel *dst, int kernel[3], int kernelScale, bool filter) {
+//
+//	int i, j;
+//
+//    //*******************************************************************
+//    // optimization- calculate (dim - kernelSize / 2) before the loop
+//    //*******************************************************************
+//    int until = m - 1;
+//
+//    //*******************************************************************
+//    // optimization- calculate pointer add 1 without calculate index
+//    //*******************************************************************
+//    dst += m;
+//	for (i = 1; i < until; i++) {
+//        dst++;
+//		for (j =  1; j < until ; j++) {
+//            (*dst) = applyKernel(i, j, src, kernel, kernelScale, filter);
+//            dst++;
+//		}
+//        dst++;
+//	}
+//}
 
-	int i, j;
+static void copy_words(void *restrict dst, const void *restrict src, size_t words)
+{
+    const uint64_t  *restrict src64;
+    uint64_t        *restrict dst64;
+    uint64_t        pages;
+    uint64_t        offset;
 
-    //*******************************************************************
-    // optimization- calculate (dim - kernelSize / 2) before the loop
-    //*******************************************************************
-    int until = m - 1;
+    pages = words / 8;
+    offset = words - pages * 8;
+    src64 = (const uint64_t *restrict)src;
+    dst64 = (uint64_t *restrict)dst;
+    while (pages--)
+    {
+        *dst64++ = *src64++;
+        *dst64++ = *src64++;
+        *dst64++ = *src64++;
+        *dst64++ = *src64++;
+        *dst64++ = *src64++;
+        *dst64++ = *src64++;
+        *dst64++ = *src64++;
+        *dst64++ = *src64++;
+    }
+    while (offset--)
+        *dst64++ = *src64++;
+}
+static void copy_small(void *restrict dst, const void *restrict src, size_t size)
+{
+    const uint64_t  *restrict src64;
+    uint64_t        *restrict dst64;
 
-    //*******************************************************************
-    // optimization- calculate pointer add 1 without calculate index
-    //*******************************************************************
-    dst += m;
-	for (i = 1; i < until; i++) {
-        dst++;
-		for (j =  1; j < until ; j++) {
-            (*dst) = applyKernel(i, j, src, kernel, kernelScale, filter);
-            dst++;
-		}
-        dst++;
-	}
+    src64 = (const uint64_t *restrict)src;
+    dst64 = (uint64_t *restrict)dst;
+    *dst64 = *src64;
+}
+
+static void mem_cpy(void *restrict dst, const void *restrict src, const size_t size)
+{
+    const uint8_t   *restrict src8;
+    uint8_t         *restrict dst8;
+    size_t          offset;
+    size_t          words;
+    size_t          aligned_size;
+
+    if (!src || !dst)
+        return;
+    if (size <= 8)
+    {
+        copy_small(dst, src, size);
+        return;
+    }
+    words = size / 8;
+    aligned_size = words * 8;
+    offset = size - aligned_size;
+    copy_words(dst, src, words);
+    if (offset)
+    {
+        src8 = (const uint8_t *restrict)src;
+        src8 = &src8[aligned_size];
+        dst8 = (uint8_t *restrict)dst;
+        dst8 = &dst8[aligned_size];
+        while (offset--)
+            *dst8++ = *src8++;
+    }
+    return;
 }
 
 
@@ -287,11 +353,14 @@ void smooth2(Image *image1, int weight1, int weight2, int kernelScale, bool filt
     //*******************************************************************
     // optimization- calculate pointer add 1 without calculate index
     //*******************************************************************
-    for (int k = 0; k < m3; ++k) {
-        (*dest) = (*data);
-        data++;
-        dest++;
-    }
+//    for (int k = 0; k < m3; ++k) {
+//        (*dest) = (*data);
+//        data++;
+//        dest++;
+//    }
+    mem_cpy(dest, data, m3);
+    dest+=m3;
+    data+=m3;
     for (i = 1; i < until; i++) {
         (*dest) = (*data);
         data++;
@@ -607,87 +676,91 @@ void smooth2(Image *image1, int weight1, int weight2, int kernelScale, bool filt
         data++;
         dest++;
     }
-    for (int k = 0; k < m3; ++k) {
-        (*dest) = (*data);
-        data++;
-        dest++;
-    }
+//    for (int k = 0; k < m3; ++k) {
+//        (*dest) = (*data);
+//        data++;
+//        dest++;
+//    }
+    mem_cpy(dest, data, m3);
+    dest+=m3;
+    data+=m3;
     unsigned long mn3 = m3 * n;
-    for (int k = 0; k < mn3; ++k) {
-        (*src1) = (*dest1);
-        src1++;
-        dest1++;
-    }
+    mem_cpy(src1, dest1, mn3);
+//    for (int k = 0; k < mn3; ++k) {
+//        (*src1) = (*dest1);
+//        src1++;
+//        dest1++;
+//    }
     free(dest2);
 }
 
 
 
 
-void charsToPixels(Image *charsImg, pixel* pixels) {
-
-    //*******************************************************************
-    // optimization- calculate pointer add 1 without calculate index
-    //*******************************************************************
-    unsigned long nm = n*m;
-    char *data = charsImg->data;
-    for (int i = 0; i < nm ; i++) {
-        (*pixels).red = (*data);
-        data++;
-        (*pixels).green = (*data);
-        data++;
-        (*pixels).blue = (*data);
-        data++;
-        pixels++;
-    }
-}
+//void charsToPixels(Image *charsImg, pixel* pixels) {
+//
+//    //*******************************************************************
+//    // optimization- calculate pointer add 1 without calculate index
+//    //*******************************************************************
+//    unsigned long nm = n*m;
+//    char *data = charsImg->data;
+//    for (int i = 0; i < nm ; i++) {
+//        (*pixels).red = (*data);
+//        data++;
+//        (*pixels).green = (*data);
+//        data++;
+//        (*pixels).blue = (*data);
+//        data++;
+//        pixels++;
+//    }
+//}
 
 //*******************************************************************
 // optimization- copy to pixels2 also to use cache and not use copy
 //*******************************************************************
-void charsToPixels2(Image *charsImg, pixel* pixels, pixel* pixels2) {
+//void charsToPixels2(Image *charsImg, pixel* pixels, pixel* pixels2) {
+//
+//    //*******************************************************************
+//    // optimization- calculate pointer add 1 without calculate index
+//    //*******************************************************************
+//    unsigned long nm = n*m;
+//    char *data = charsImg->data;
+//    unsigned char red, green, blue;
+//    for (int i = 0; i < nm ; i++) {
+//        red = (*data);
+//        (*pixels).red = red;
+//        (*pixels2).red = red;
+//        data++;
+//        green = (*data);
+//        (*pixels).green = green;
+//        (*pixels2).green = green;
+//        data++;
+//        blue = (*data);
+//        (*pixels).blue = blue;
+//        (*pixels2).blue = blue;
+//        data++;
+//        pixels++;
+//        pixels2++;
+//    }
+//}
 
-    //*******************************************************************
-    // optimization- calculate pointer add 1 without calculate index
-    //*******************************************************************
-    unsigned long nm = n*m;
-    char *data = charsImg->data;
-    unsigned char red, green, blue;
-    for (int i = 0; i < nm ; i++) {
-        red = (*data);
-        (*pixels).red = red;
-        (*pixels2).red = red;
-        data++;
-        green = (*data);
-        (*pixels).green = green;
-        (*pixels2).green = green;
-        data++;
-        blue = (*data);
-        (*pixels).blue = blue;
-        (*pixels2).blue = blue;
-        data++;
-        pixels++;
-        pixels2++;
-    }
-}
-
-void pixelsToChars(pixel* pixels, Image *charsImg) {
-
-    //*******************************************************************
-    // optimization- calculate pointer add 1 without calculate index
-    //*******************************************************************
-    unsigned long nm = n*m;
-    char *data = charsImg->data;
-    for (int i = 0; i < nm ; i++) {
-        *data = pixels->red;
-        data++;
-        *data = pixels->green;
-        data++;
-        *data = pixels->blue;
-        data++;
-        pixels++;
-    }
-}
+//void pixelsToChars(pixel* pixels, Image *charsImg) {
+//
+//    //*******************************************************************
+//    // optimization- calculate pointer add 1 without calculate index
+//    //*******************************************************************
+//    unsigned long nm = n*m;
+//    char *data = charsImg->data;
+//    for (int i = 0; i < nm ; i++) {
+//        *data = pixels->red;
+//        data++;
+//        *data = pixels->green;
+//        data++;
+//        *data = pixels->blue;
+//        data++;
+//        pixels++;
+//    }
+//}
 
 //void copyPixels(pixel* src, pixel* dst) {
 //
@@ -738,21 +811,21 @@ void pixelsToChars(pixel* pixels, Image *charsImg) {
 //}
 
 
-void doConvolution(Image *image, int kernel[3], int kernelScale, bool filter) {
-
-    pixel* pixelsImg = malloc(m*n*sizeof(pixel));
-    pixel* backupOrg = malloc(m*n*sizeof(pixel));
-
-    charsToPixels2(image, pixelsImg, backupOrg);
-    //copyPixels(pixelsImg, backupOrg);
-
-    smooth(backupOrg, pixelsImg, kernel, kernelScale, filter);
-
-    pixelsToChars(pixelsImg, image);
-
-    free(pixelsImg);
-    free(backupOrg);
-}
+//void doConvolution(Image *image, int kernel[3], int kernelScale, bool filter) {
+//
+//    pixel* pixelsImg = malloc(m*n*sizeof(pixel));
+//    pixel* backupOrg = malloc(m*n*sizeof(pixel));
+//
+//    charsToPixels2(image, pixelsImg, backupOrg);
+//    //copyPixels(pixelsImg, backupOrg);
+//
+//    smooth(backupOrg, pixelsImg, kernel, kernelScale, filter);
+//
+//    pixelsToChars(pixelsImg, image);
+//
+//    free(pixelsImg);
+//    free(backupOrg);
+//}
 
 void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sharpRsltImgName, char* filteredBlurRsltImgName, char* filteredSharpRsltImgName, char flag) {
 
