@@ -2,11 +2,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-typedef struct {
-   unsigned char red;
-   unsigned char green;
-   unsigned char blue;
-} pixel;
+//typedef struct {
+//   unsigned char red;
+//   unsigned char green;
+//   unsigned char blue;
+//} pixel;
 
 //typedef struct {
 //    int red;
@@ -341,14 +341,10 @@ static void mem_cpy(void *restrict dst, const void *restrict src, const size_t s
 */
 void smooth2(Image *image1, int weight1, int weight2, int kernelScale, bool filter) {
 
-    char *dest = (char *)malloc(3*m*n), *dest1 = dest, *dest2 = dest;
+    int m3 = 3*m, mn3 = m3*n;
+    char *dest = (char *)malloc(mn3), *dest1 = dest, *dest2 = dest;
     char *data = image1->data, *src1 = data;
-    int i, j, m3 = 3*m;
-
-    //*******************************************************************
-    // optimization- calculate (dim - kernelSize / 2) before the loop
-    //*******************************************************************
-    int until = m - 1;
+    int i, j, until = m - 1;
 
     //*******************************************************************
     // optimization- calculate pointer add 1 without calculate index
@@ -373,9 +369,6 @@ void smooth2(Image *image1, int weight1, int weight2, int kernelScale, bool filt
         dest++;
         for (j = 1; j < until; j++) {
 
-            int min_intensity = 766; // arbitrary value that is higher than maximum possible intensity, which is 255*3=765
-            int max_intensity = -1; // arbitrary value that is lower than minimum possible intensity, which is 0
-            int min_row, min_col, max_row, max_col;
             char *dataBefore = data - m3, *dataAfter = data + m3;
             //pixel loop_pixel;
 
@@ -456,22 +449,21 @@ void smooth2(Image *image1, int weight1, int weight2, int kernelScale, bool filt
                 int r, g, b, sums;
 
                 r = ((unsigned char)*(dataBefore - 3)) * weight1;
-                red += r;
                 g = ((unsigned char)*(dataBefore - 2)) * weight1;
-                green += g;
                 b = ((unsigned char)*(dataBefore - 1)) * weight1;
+                red += r;
+                green += g;
                 blue += b;
 
                 sums = r + g + b;
                 int maxR = r, maxG = g, maxB = b, minR = r, minG = g, minB = b;
-                max_intensity = sums;
-                min_intensity = sums;
+                int max_intensity = sums, min_intensity = sums;
 
                 r = ((unsigned char)*dataBefore) * weight1;
-                red += r;
                 g = ((unsigned char)*(dataBefore + 1)) * weight1;
-                green += g;
                 b = ((unsigned char)*(dataBefore + 2)) * weight1;
+                red += r;
+                green += g;
                 blue += b;
 
                 sums = r + g + b;
@@ -488,10 +480,10 @@ void smooth2(Image *image1, int weight1, int weight2, int kernelScale, bool filt
                 }
 
                 r = ((unsigned char)*(dataBefore + 3)) * weight1;
-                red += r;
                 g = ((unsigned char)*(dataBefore + 4)) * weight1;
-                green += g;
                 b = ((unsigned char)*(dataBefore + 5)) * weight1;
+                red += r;
+                green += g;
                 blue += b;
 
                 sums = r + g + b;
@@ -510,10 +502,10 @@ void smooth2(Image *image1, int weight1, int weight2, int kernelScale, bool filt
 
 
                 r = ((unsigned char)*(data - 3)) * weight1;
-                red += r;
                 g = ((unsigned char)*(data - 2)) * weight1;
-                green += g;
                 b = ((unsigned char)*(data - 1)) * weight1;
+                red += r;
+                green += g;
                 blue += b;
 
                 sums = r + g + b;
@@ -530,10 +522,10 @@ void smooth2(Image *image1, int weight1, int weight2, int kernelScale, bool filt
                 }
 
                 r = ((unsigned char)*data) * weight2;
-                red += r;
                 g = ((unsigned char)*(data + 1)) * weight2;
-                green += g;
                 b = ((unsigned char)*(data + 2)) * weight2;
+                red += r;
+                green += g;
                 blue += b;
 
                 sums = r + g + b;
@@ -550,10 +542,10 @@ void smooth2(Image *image1, int weight1, int weight2, int kernelScale, bool filt
                 }
 
                 r = ((unsigned char)*(data + 3)) * weight1;
-                red += r;
                 g = ((unsigned char)*(data + 4)) * weight1;
-                green += g;
                 b = ((unsigned char)*(data + 5)) * weight1;
+                red += r;
+                green += g;
                 blue += b;
 
                 sums = r + g + b;
@@ -572,10 +564,10 @@ void smooth2(Image *image1, int weight1, int weight2, int kernelScale, bool filt
 
 
                 r = ((unsigned char)*(dataAfter - 3)) * weight1;
-                red += r;
                 g = ((unsigned char)*(dataAfter - 2)) * weight1;
-                green += g;
                 b = ((unsigned char)*(dataAfter - 1)) * weight1;
+                red += r;
+                green += g;
                 blue += b;
 
                 sums = r + g + b;
@@ -592,10 +584,10 @@ void smooth2(Image *image1, int weight1, int weight2, int kernelScale, bool filt
                 }
 
                 r = ((unsigned char)*dataAfter) * weight1;
-                red += r;
                 g = ((unsigned char)*(dataAfter + 1)) * weight1;
-                green += g;
                 b = ((unsigned char)*(dataAfter + 2)) * weight1;
+                red += r;
+                green += g;
                 blue += b;
 
                 sums = r + g + b;
@@ -612,10 +604,10 @@ void smooth2(Image *image1, int weight1, int weight2, int kernelScale, bool filt
                 }
 
                 r = ((unsigned char)*(dataAfter + 3)) * weight1;
-                red += r;
                 g = ((unsigned char)*(dataAfter + 4)) * weight1;
-                green += g;
                 b = ((unsigned char)*(dataAfter + 5)) * weight1;
+                red += r;
+                green += g;
                 blue += b;
 
                 sums = r + g + b;
@@ -684,7 +676,6 @@ void smooth2(Image *image1, int weight1, int weight2, int kernelScale, bool filt
     mem_cpy(dest, data, m3);
     dest+=m3;
     data+=m3;
-    unsigned long mn3 = m3 * n;
     mem_cpy(src1, dest1, mn3);
 //    for (int k = 0; k < mn3; ++k) {
 //        (*src1) = (*dest1);
