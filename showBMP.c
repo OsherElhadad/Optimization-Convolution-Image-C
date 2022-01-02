@@ -83,7 +83,7 @@ void optimize(Image* image, char flag) {
     for (int i = 0; i < num; ++i) {
         myfunction(image, picName, blurRsltImgName, sharpRsltImgName, filteredBlurRsltImgName, filteredSharpRsltImgName, flag);
     }
-    //myfunction(image, picName, blurRsltImgName, sharpRsltImgName, filteredBlurRsltImgName, filteredSharpRsltImgName, flag);
+//    myfunction(image, picName, blurRsltImgName, sharpRsltImgName, filteredBlurRsltImgName, filteredSharpRsltImgName, flag);
 
     getrusage(RUSAGE_SELF, &ru); // end timer
     endTime = ru.ru_utime;

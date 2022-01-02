@@ -7,7 +7,7 @@ showBMP: showBMP.o readBMP.o writeBMP.o
 	gcc -pg -o showBMP readBMP.o writeBMP.o showBMP.o $(LDLIBS)
 
 readBMP.o: readBMP.c readBMP.h
-	gcc -o readBMP.o -c readBMP.c	
+	gcc -o readBMP.o -c readBMP.c
 
 writeBMP.o: writeBMP.c writeBMP.h readBMP.h
 	gcc -o writeBMP.o -c writeBMP.c
