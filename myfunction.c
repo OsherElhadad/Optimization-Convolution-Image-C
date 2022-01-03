@@ -2,82 +2,139 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
+#include <unistd.h>
 
-void writeBMPOpt(Image *image, const char* originalImgFileName, const char* fileName) {
-
-    // open the file to be written
-    FILE * bmpfile;
-    bmpfile = fopen(fileName, "wb");
-    if (NULL == bmpfile) {
-        printf("Error opening output file\n");
-        // close all open files and free any allocated memory
-        exit (1);
-    }
-
-    // open BMP file of original image
-    FILE * srcFile;
-    if ((srcFile = fopen(originalImgFileName, "rb")) == NULL) {
-        printf("File Not Found : %s\n", originalImgFileName);
-        exit (1);
-    }
-
-    // read header of original image
-    char originalHeader[54];
-    fread(&originalHeader, 1, 54, srcFile);
-
-    // write the BMP file header
-    fwrite(&originalHeader, 1, 54, bmpfile);
-
-    // close BMP file of original image
-    fclose(srcFile);
-
-    // calculate number of bytes per each line
-    register int bytesPerLine = m * 3;  // for 24 bit images
-    // round up to a dword boundary
-    if (bytesPerLine & 0x0003) {
-        bytesPerLine |= 0x0003;
-        ++bytesPerLine;
-    }
-
-    // allocate buffer to hold one line of the image
-    char *linebuf;
-    linebuf = (char *) calloc(1, bytesPerLine);
-    if (linebuf == NULL) {
-        printf ("Error allocating memory\n");
-        // close all open files and free any allocated memory
-        exit (1);
-    }
-
-    // write the image line by line - start with the lowest line
-    register int i, line = m;
-    register char* iData = image->data, *ilinebuf;
-    for (; line >= 0; --line) {
-
-        ilinebuf = linebuf;
-        /*
-        * fill line linebuf with the image data for that line
-        * remember that the order is BGR
-        */
-        for (i = bytesPerLine; i > 0 ; i -= 3) {
-
-            *(ilinebuf++) = *(iData + 2);
-            *(ilinebuf++) = *(iData + 1);
-            *(ilinebuf++) = *iData;
-
-            iData+=3;
-        }
-
-        /*
-        * remember that the order is BGR and if width is not a multiple
-        * of 4 then the last few bytes may be unused
-        */
-        fwrite(linebuf, 1, bytesPerLine, bmpfile);
-    }
-
-    // close the image file
-    fclose(bmpfile);
-}
-
+//void writeBMPOpt(Image *image, const char* originalImgFileName, const char* fileName) {
+//
+//    // open the file to be written
+//    FILE * bmpfile;
+//    bmpfile = fopen(fileName, "wb");
+//    if (NULL == bmpfile) {
+//        printf("Error opening output file\n");
+//        // close all open files and free any allocated memory
+//        exit (1);
+//    }
+//
+//    // open BMP file of original image
+//    FILE * srcFile;
+//    if ((srcFile = fopen(originalImgFileName, "rb")) == NULL) {
+//        printf("File Not Found : %s\n", originalImgFileName);
+//        exit (1);
+//    }
+//
+//    // read header of original image
+//    char originalHeader[54];
+//    fread(&originalHeader, 1, 54, srcFile);
+//
+//    // write the BMP file header
+//    fwrite(&originalHeader, 1, 54, bmpfile);
+//
+//    // close BMP file of original image
+//    fclose(srcFile);
+//
+//    // calculate number of bytes per each line
+//    register int bytesPerLine = m * 3;  // for 24 bit images
+//    // round up to a dword boundary
+//    if (bytesPerLine & 0x0003) {
+//        bytesPerLine |= 0x0003;
+//        ++bytesPerLine;
+//    }
+//
+//    // allocate buffer to hold one line of the image
+//    char *linebuf;
+//    linebuf = (char *) calloc(1, bytesPerLine);
+//    if (linebuf == NULL) {
+//        printf ("Error allocating memory\n");
+//        // close all open files and free any allocated memory
+//        exit (1);
+//    }
+//
+//    // write the image line by line - start with the lowest line
+//    register int i, line = m;
+//    register char* iData = image->data, *ilinebuf;
+//    for (; line >= 0; --line) {
+//
+//        ilinebuf = linebuf;
+//        /*
+//        * fill line linebuf with the image data for that line
+//        * remember that the order is BGR
+//        */
+//        for (i = bytesPerLine; i > 0 ; i -= 3) {
+//
+//            *(ilinebuf++) = *(iData + 2);
+//            *(ilinebuf++) = *(iData + 1);
+//            *(ilinebuf++) = *iData;
+//
+//            iData+=3;
+//        }
+//
+//        /*
+//        * remember that the order is BGR and if width is not a multiple
+//        * of 4 then the last few bytes may be unused
+//        */
+//        fwrite(linebuf, 1, bytesPerLine, bmpfile);
+//    }
+//
+//    // close the image file
+//    fclose(bmpfile);
+//}
+//
+//
+//void writeBMPOpt2(Image *image, const char* originalImgFileName, const char* fileName) {
+//
+//    int fdDst = open(originalImgFileName, O_RDWR, S_IRUSR | S_IWUSR);
+//    struct stat sbDst;
+//    if (fdDst < 0) {
+//        printf("Error opening output file\n");
+//        // close all open files and free any allocated memory
+//        exit (1);
+//    }
+//
+//    int fdOriginal = open(originalImgFileName, O_RDONLY, S_IRUSR | S_IWUSR);
+//    if (fdOriginal < 0) {
+//        printf("File Not Found : %s\n", originalImgFileName);
+//        exit (1);
+//    }
+//    char * orig = mmap(NULL, 54, PROT_READ, MAP_PRIVATE, fdOriginal, 0);
+//    char * dst = mmap(NULL, 54 + (m + 1) * n * 3, PROT_READ | PROT_WRITE, MAP_PRIVATE, fdDst, 0);
+//
+//    for (int i = 0; i < 54; ++i) {
+//        *(dst++) = *(orig++);
+//    }
+//    close(fdOriginal);
+//
+//    // calculate number of bytes per each line
+//    register int bytesPerLine = m * 3;  // for 24 bit images
+//    // round up to a dword boundary
+//    if (bytesPerLine & 0x0003) {
+//        bytesPerLine |= 0x0003;
+//        ++bytesPerLine;
+//    }
+//
+//    // write the image line by line - start with the lowest line
+//    register int i, line = m;
+//    register char* iData = image->data;
+//    for (; line >= 0; --line) {
+//        /*
+//        * fill line linebuf with the image data for that line
+//        * remember that the order is BGR
+//        */
+//        for (i = bytesPerLine; i > 0 ; i -= 3) {
+//
+//            *(dst++) = *(iData + 2);
+//            *(dst++) = *(iData + 1);
+//            *(dst++) = *iData;
+//
+//            iData+=3;
+//        }
+//    }
+//
+//    close(fdDst);
+//}
 
 
 void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sharpRsltImgName, char* filteredBlurRsltImgName, char* filteredSharpRsltImgName, char flag) {
@@ -227,10 +284,30 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
                 *(src1++) = *(dest1++);
         }
 
+//        while (pages--) {
+//            *(dst64++) = *(src64++);
+//            *(dst64++) = *(src64++);
+//            *(dst64++) = *(src64++);
+//            *(dst64++) = *(src64++);
+//            *(dst64++) = *(src64++);
+//            *(dst64++) = *(src64++);
+//            *(dst64++) = *(src64++);
+//            *(dst64++) = *(src64++);
+//        }
+//        while (offset2--)
+//            *(dst64++) = *(src64++);
+//
+//        if (offset) {
+//            src1 = &src1[aligned_size];
+//            dest1 = &dest1[aligned_size];
+//            while (offset--)
+//                *(dest1++) = *(src1++);
+//        }
+
 
 
         // write result image to file
-        writeBMPOpt(image, srcImgpName, blurRsltImgName);
+        writeBMP(image, srcImgpName, blurRsltImgName);
     } else {
         // apply extermum filtered kernel to blur image
         //doConvolution(image, blurKernel, 7, true);
@@ -477,7 +554,7 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
         }
 
         // write result image to file
-        writeBMPOpt(image, srcImgpName, filteredBlurRsltImgName);
+        writeBMP(image, srcImgpName, filteredBlurRsltImgName);
 
         // sharpen the resulting image
         //doConvolution(image, sharpKernel, 1, false);
@@ -581,9 +658,9 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
 
     // write result image to file
     if (flag == '1') {
-        writeBMPOpt(image, srcImgpName, sharpRsltImgName);
+        writeBMP(image, srcImgpName, sharpRsltImgName);
     } else {
-        writeBMPOpt(image, srcImgpName, filteredSharpRsltImgName);
+        writeBMP(image, srcImgpName, filteredSharpRsltImgName);
     }
     free(dest2);
 }
