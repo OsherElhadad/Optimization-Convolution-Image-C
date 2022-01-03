@@ -79,17 +79,17 @@ void optimize(Image* image, char flag) {
     getrusage(RUSAGE_SELF, &ru); // start timer
     startTime = ru.ru_utime;
 
-    int num = 100;
-    for (int i = 0; i < num; ++i) {
-        myfunction(image, picName, blurRsltImgName, sharpRsltImgName, filteredBlurRsltImgName, filteredSharpRsltImgName, flag);
-    }
-//    myfunction(image, picName, blurRsltImgName, sharpRsltImgName, filteredBlurRsltImgName, filteredSharpRsltImgName, flag);
+//    int num = 100;
+//    for (int i = 0; i < num; ++i) {
+//        myfunction(image, picName, blurRsltImgName, sharpRsltImgName, filteredBlurRsltImgName, filteredSharpRsltImgName, flag);
+//    }
+    myfunction(image, picName, blurRsltImgName, sharpRsltImgName, filteredBlurRsltImgName, filteredSharpRsltImgName, flag);
 
     getrusage(RUSAGE_SELF, &ru); // end timer
     endTime = ru.ru_utime;
     double tS = startTime.tv_sec * 1000000.0 + (startTime.tv_usec);
     double tE = endTime.tv_sec * 1000000.0 + (endTime.tv_usec);
-    printf("Total runtime: %f ms\n", (tE - tS) / 1000.0 / num);
+    printf("Total runtime: %f ms\n", (tE - tS) / 1000.0);
 }
 
 static void key(unsigned char c, int x, int y) {

@@ -140,10 +140,11 @@
 void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sharpRsltImgName, char* filteredBlurRsltImgName, char* filteredSharpRsltImgName, char flag) {
 
     register int m3 = 3 * m, mn3 = m3 * n, maxi;
-    register unsigned char *dest = (unsigned char *) malloc(mn3), *dest1 = dest + m3, *dest2 = dest;
-    register unsigned char *data = (unsigned char *) image->data, *src1 = data + m3;
-    register int i, j, until = m - 2;
-    register int size = mn3 - m3 - m3, words = size / 8, aligned_size = words * 8, offset = size - aligned_size;
+    register unsigned char *dest = (unsigned char *) malloc(mn3), *dest1 = dest;
+    register unsigned char *data = (unsigned char *) image->data, *src1 = data;
+    image->data = (char *)dest1;
+    register int i, j, until = m - 2, until2 = until - 1;
+    register int size = m3, words = size / 8, aligned_size = words * 8, offset = size - aligned_size;
     register int pages = words / 8, offset2 = words - pages * 8;
     register long *src64 = (long *) src1, *dst64 = (long *) dest1;
 
@@ -152,8 +153,26 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
         //doConvolution(image, blurKernel, 9, false);
         //smooth1(image, 9, false);
 
-        dest = dest1;
-        data = src1;
+        while (pages--) {
+            *(dst64++) = *(src64++);
+            *(dst64++) = *(src64++);
+            *(dst64++) = *(src64++);
+            *(dst64++) = *(src64++);
+            *(dst64++) = *(src64++);
+            *(dst64++) = *(src64++);
+            *(dst64++) = *(src64++);
+            *(dst64++) = *(src64++);
+        }
+        while (offset2--)
+            *(dst64++) = *(src64++);
+
+        if (offset) {
+            data = &data[aligned_size];
+            dest = &dest[aligned_size];
+            while (offset--)
+                *(dest++) = *(data++);
+        }
+
         (*(int *) dest) = (*(int *) data);
         data += 3;
         dest += 3;
@@ -218,7 +237,7 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
 
             data += 3;
             dest += 3;
-            for (j = until - 1; j > 0; j--) {
+            for (j = until2; j > 0; j--) {
 
                 dataBefore = data - m3 + 3, dataAfter = data + m3 + 3;
                 redL = redM;
@@ -264,45 +283,30 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
             dest += 6;
         }
 
+        offset = size - aligned_size;
+        pages = words / 8;
+        offset2 = words - pages * 8;
+        src64 = (long *) data;
+        dst64 = (long *) dest;
         while (pages--) {
-            *(src64++) = *(dst64++);
-            *(src64++) = *(dst64++);
-            *(src64++) = *(dst64++);
-            *(src64++) = *(dst64++);
-            *(src64++) = *(dst64++);
-            *(src64++) = *(dst64++);
-            *(src64++) = *(dst64++);
-            *(src64++) = *(dst64++);
+            *(dst64++) = *(src64++);
+            *(dst64++) = *(src64++);
+            *(dst64++) = *(src64++);
+            *(dst64++) = *(src64++);
+            *(dst64++) = *(src64++);
+            *(dst64++) = *(src64++);
+            *(dst64++) = *(src64++);
+            *(dst64++) = *(src64++);
         }
         while (offset2--)
-            *(src64++) = *(dst64++);
+            *(dst64++) = *(src64++);
 
         if (offset) {
-            src1 = &src1[aligned_size];
-            dest1 = &dest1[aligned_size];
+            data = &data[aligned_size];
+            dest = &dest[aligned_size];
             while (offset--)
-                *(src1++) = *(dest1++);
+                *(dest++) = *(data++);
         }
-
-//        while (pages--) {
-//            *(dst64++) = *(src64++);
-//            *(dst64++) = *(src64++);
-//            *(dst64++) = *(src64++);
-//            *(dst64++) = *(src64++);
-//            *(dst64++) = *(src64++);
-//            *(dst64++) = *(src64++);
-//            *(dst64++) = *(src64++);
-//            *(dst64++) = *(src64++);
-//        }
-//        while (offset2--)
-//            *(dst64++) = *(src64++);
-//
-//        if (offset) {
-//            src1 = &src1[aligned_size];
-//            dest1 = &dest1[aligned_size];
-//            while (offset--)
-//                *(dest1++) = *(src1++);
-//        }
 
 
 
@@ -314,8 +318,26 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
 //        smooth1(image, 7, true);
 
 
-        dest += m3;
-        data += m3;
+        while (pages--) {
+            *(dst64++) = *(src64++);
+            *(dst64++) = *(src64++);
+            *(dst64++) = *(src64++);
+            *(dst64++) = *(src64++);
+            *(dst64++) = *(src64++);
+            *(dst64++) = *(src64++);
+            *(dst64++) = *(src64++);
+            *(dst64++) = *(src64++);
+        }
+        while (offset2--)
+            *(dst64++) = *(src64++);
+
+        if (offset) {
+            data = &data[aligned_size];
+            dest = &dest[aligned_size];
+            while (offset--)
+                *(dest++) = *(data++);
+        }
+
         (*(int *) dest) = (*(int *) data);
         data += 3;
         dest += 3;
@@ -533,24 +555,30 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
             data += 6;
             dest += 6;
         }
+
+        offset = size - aligned_size;
+        pages = words / 8;
+        offset2 = words - pages * 8;
+        src64 = (long *) data;
+        dst64 = (long *) dest;
         while (pages--) {
-            *(src64++) = *(dst64++);
-            *(src64++) = *(dst64++);
-            *(src64++) = *(dst64++);
-            *(src64++) = *(dst64++);
-            *(src64++) = *(dst64++);
-            *(src64++) = *(dst64++);
-            *(src64++) = *(dst64++);
-            *(src64++) = *(dst64++);
+            *(dst64++) = *(src64++);
+            *(dst64++) = *(src64++);
+            *(dst64++) = *(src64++);
+            *(dst64++) = *(src64++);
+            *(dst64++) = *(src64++);
+            *(dst64++) = *(src64++);
+            *(dst64++) = *(src64++);
+            *(dst64++) = *(src64++);
         }
         while (offset2--)
-            *(src64++) = *(dst64++);
+            *(dst64++) = *(src64++);
 
         if (offset) {
-            src1 = &src1[aligned_size];
-            dest1 = &dest1[aligned_size];
+            data = &data[aligned_size];
+            dest = &dest[aligned_size];
             while (offset--)
-                *(src1++) = *(dest1++);
+                *(dest++) = *(data++);
         }
 
         // write result image to file
@@ -561,12 +589,36 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
 //        smooth2(image, 1, false);
     }
 
-    dest = dest2;
-    dest1 = dest + m3;
-    data = image->data;
-    src1 = data + m3;
-    dest = dest1;
-    data = src1;
+    image->data = (char *)src1;
+    dest = src1;
+    data = dest1;
+
+    offset = size - aligned_size;
+    pages = words / 8;
+    offset2 = words - pages * 8;
+    src64 = (long *) data;
+    dst64 = (long *) dest;
+    while (pages--) {
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+    }
+    while (offset2--)
+        *(dst64++) = *(src64++);
+
+    if (offset) {
+        data = &data[aligned_size];
+        dest = &dest[aligned_size];
+        while (offset--)
+            *(dest++) = *(data++);
+    }
+
+
     (*(int *) dest) = (*(int *) data);
     data += 3;
     dest += 3;
@@ -634,26 +686,26 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
     offset = size - aligned_size;
     pages = words / 8;
     offset2 = words - pages * 8;
-    src64 = (long *) src1;
-    dst64 = (long *) dest1;
+    src64 = (long *) data;
+    dst64 = (long *) dest;
     while (pages--) {
-        *(src64++) = *(dst64++);
-        *(src64++) = *(dst64++);
-        *(src64++) = *(dst64++);
-        *(src64++) = *(dst64++);
-        *(src64++) = *(dst64++);
-        *(src64++) = *(dst64++);
-        *(src64++) = *(dst64++);
-        *(src64++) = *(dst64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
     }
     while (offset2--)
-        *(src64++) = *(dst64++);
+        *(dst64++) = *(src64++);
 
     if (offset) {
-        src1 = &src1[aligned_size];
-        dest1 = &dest1[aligned_size];
+        data = &data[aligned_size];
+        dest = &dest[aligned_size];
         while (offset--)
-            *(src1++) = *(dest1++);
+            *(dest++) = *(data++);
     }
 
     // write result image to file
@@ -662,6 +714,6 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
     } else {
         writeBMP(image, srcImgpName, filteredSharpRsltImgName);
     }
-    free(dest2);
+    free(dest1);
 }
 
