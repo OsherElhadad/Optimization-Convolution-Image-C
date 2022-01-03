@@ -239,7 +239,8 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
             dest += 3;
             for (j = until2; j > 0; j--) {
 
-                dataBefore = data - m3 + 3, dataAfter = data + m3 + 3;
+                dataBefore = data - m3 + 3;
+                dataAfter = data + m3 + 3;
                 redL = redM;
                 redM = redR;
                 greenL = greenM;
@@ -623,48 +624,97 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
     data += 3;
     dest += 3;
     for (i = until; i > 0; i--) {
-        for (j = until; j > 0; j--) {
-
-            register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
-            register int red = 0, green = 0, blue = 0;
-
-            red -= *(dataBefore - 3);
-            green -= *(dataBefore - 2);
-            blue -= *(dataBefore - 1);
-
-            red -= *dataBefore;
-            green -= *(dataBefore + 1);
-            blue -= *(dataBefore + 2);
-
-            red -= *(dataBefore + 3);
-            green -= *(dataBefore + 4);
-            blue -= *(dataBefore + 5);
+        register int red = 0, green = 0, blue = 0, red9 = 0, green9 = 0, blue9 = 0, red9R = 0, green9R = 0, blue9R = 0;
+        register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
+        register int redL = 0, greenL = 0, blueL = 0, redM = 0, greenM = 0, blueM = 0, redR = 0, greenR = 0, blueR = 0;
 
 
-            red -= *(data - 3);
-            green -= *(data - 2);
-            blue -= *(data - 1);
+        redL -= *(dataBefore - 3);
+        greenL -= *(dataBefore - 2);
+        blueL -= *(dataBefore - 1);
 
-            red += (*data) * 9;
-            green += (*(data + 1)) * 9;
-            blue += (*(data + 2)) * 9;
+        redM -= *dataBefore;
+        greenM -= *(dataBefore + 1);
+        blueM -= *(dataBefore + 2);
 
-            red -= *(data + 3);
-            green -= *(data + 4);
-            blue -= *(data + 5);
+        redR -= *(dataBefore + 3);
+        greenR -= *(dataBefore + 4);
+        blueR -= *(dataBefore + 5);
 
 
-            red -= *(dataAfter - 3);
-            green -= *(dataAfter - 2);
-            blue -= *(dataAfter - 1);
+        redL -= *(data - 3);
+        greenL -= *(data - 2);
+        blueL -= *(data - 1);
 
-            red -= *dataAfter;
-            green -= *(dataAfter + 1);
-            blue -= *(dataAfter + 2);
+        red9 -= (*data);
+        green9 -= *(data + 1);
+        blue9 -= *(data + 2);
 
-            red -= *(dataAfter + 3);
-            green -= *(dataAfter + 4);
-            blue -= *(dataAfter + 5);
+        red9R -= *(data + 3);
+        green9R -= *(data + 4);
+        blue9R -= *(data + 5);
+
+
+        redL -= *(dataAfter - 3);
+        greenL -= *(dataAfter - 2);
+        blueL -= *(dataAfter - 1);
+
+        redM -= *dataAfter;
+        greenM -= *(dataAfter + 1);
+        blueM -= *(dataAfter + 2);
+
+        redR -= *(dataAfter + 3);
+        greenR -= *(dataAfter + 4);
+        blueR -= *(dataAfter + 5);
+
+
+        red = (redL + redM + ((-red9) * 9) + redR + red9R);
+        green = (greenL + greenM + ((-green9) * 9) + greenR + green9R);
+        blue = (blueL + blueM + ((-blue9) * 9) + blueR + blue9R);
+
+
+        maxi = (red > 0 ? red : 0);
+        (*dest) = (maxi < 255 ? maxi : 255);
+        maxi = (green > 0 ? green : 0);
+        (*(dest + 1)) = (maxi < 255 ? maxi : 255);
+        maxi = (blue > 0 ? blue : 0);
+        (*(dest + 2)) = (maxi < 255 ? maxi : 255);
+
+
+        data += 3;
+        dest += 3;
+        for (j = until2; j > 0; j--) {
+
+            dataBefore = data - m3 + 3;
+            dataAfter = data + m3 + 3;
+            redL = redM + red9;
+            redM = redR;
+            greenL = greenM + green9;
+            greenM = greenR;
+            blueL = blueM + blue9;
+            blueM = blueR;
+
+            redR = -(*dataBefore);
+            greenR = -(*(dataBefore + 1));
+            blueR = -(*(dataBefore + 2));
+
+            red9R = -(*(data + 3));
+            green9R = -(*(data + 4));
+            blue9R = -(*(data + 5));
+
+            redR -= *dataAfter;
+            greenR -= *(dataAfter + 1);
+            blueR -= *(dataAfter + 2);
+
+            red9 = -(*data);
+            green9 = -(*(data + 1));
+            blue9 = -*((data + 2));
+
+
+            red = (redL + redM + ((-red9) * 9) + redR + red9R);
+            green = (greenL + greenM + ((-green9) * 9) + greenR + green9R);
+            blue = (blueL + blueM + ((-blue9) * 9) + blueR + blue9R);
+
 
             maxi = (red > 0 ? red : 0);
             (*dest) = (maxi < 255 ? maxi : 255);
@@ -672,6 +722,55 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
             (*(dest + 1)) = (maxi < 255 ? maxi : 255);
             maxi = (blue > 0 ? blue : 0);
             (*(dest + 2)) = (maxi < 255 ? maxi : 255);
+
+//            dataBefore = data - m3;
+//            dataAfter = data + m3;
+//            red = 0, green = 0, blue = 0;
+//
+//            red -= *(dataBefore - 3);
+//            green -= *(dataBefore - 2);
+//            blue -= *(dataBefore - 1);
+//
+//            red -= *dataBefore;
+//            green -= *(dataBefore + 1);
+//            blue -= *(dataBefore + 2);
+//
+//            red -= *(dataBefore + 3);
+//            green -= *(dataBefore + 4);
+//            blue -= *(dataBefore + 5);
+//
+//
+//            red -= *(data - 3);
+//            green -= *(data - 2);
+//            blue -= *(data - 1);
+//
+//            red += (*data) * 9;
+//            green += (*(data + 1)) * 9;
+//            blue += (*(data + 2)) * 9;
+//
+//            red -= *(data + 3);
+//            green -= *(data + 4);
+//            blue -= *(data + 5);
+//
+//
+//            red -= *(dataAfter - 3);
+//            green -= *(dataAfter - 2);
+//            blue -= *(dataAfter - 1);
+//
+//            red -= *dataAfter;
+//            green -= *(dataAfter + 1);
+//            blue -= *(dataAfter + 2);
+//
+//            red -= *(dataAfter + 3);
+//            green -= *(dataAfter + 4);
+//            blue -= *(dataAfter + 5);
+//
+//            maxi = (red > 0 ? red : 0);
+//            (*dest) = (maxi < 255 ? maxi : 255);
+//            maxi = (green > 0 ? green : 0);
+//            (*(dest + 1)) = (maxi < 255 ? maxi : 255);
+//            maxi = (blue > 0 ? blue : 0);
+//            (*(dest + 2)) = (maxi < 255 ? maxi : 255);
 
 
             data += 3;
