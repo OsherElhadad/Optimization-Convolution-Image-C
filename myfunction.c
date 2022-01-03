@@ -873,13 +873,13 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
 	*/
 	//int sharpKernel[9] = {-1,-1,-1,-1,9,-1,-1,-1,-1};
 
-    int m3 = 3*m, mn3 = m3*n;
-    char *dest = (char *)malloc(mn3), *dest1 = dest + m3, *dest2 = dest;
-    char *data = image->data, *src1 = data + m3;
-    int i, j, until = m - 2;
-    int size = mn3 - m3 - m3, words = size / 8, aligned_size = words * 8, offset = size - aligned_size;
-    int pages = words / 8, offset2 = words - pages * 8;
-    long* src64 = (long *)src1, *dst64 = (long *)dest1;
+    register int m3 = 3*m, mn3 = m3*n;
+    register char *dest = (char *)malloc(mn3), *dest1 = dest + m3, *dest2 = dest;
+    register char *data = image->data, *src1 = data + m3;
+    register int i, j, until = m - 2;
+    register int size = mn3 - m3 - m3, words = size / 8, aligned_size = words * 8, offset = size - aligned_size;
+    register int pages = words / 8, offset2 = words - pages * 8;
+    register long* src64 = (long *)src1, *dst64 = (long *)dest1;
 
 	if (flag == '1') {	
 		// blur image
@@ -892,9 +892,9 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
         data+=3;
         dest+=3;
         for (i = until; i > 0; i--) {
-            int red = 0, green = 0, blue = 0;
-            char *dataBefore = data - m3, *dataAfter = data + m3;
-            int redL = 0, greenL = 0, blueL = 0, redM = 0, greenM = 0, blueM = 0, redR = 0, greenR = 0, blueR = 0;
+            register int red = 0, green = 0, blue = 0;
+            register char *dataBefore = data - m3, *dataAfter = data + m3;
+            register int redL = 0, greenL = 0, blueL = 0, redM = 0, greenM = 0, blueM = 0, redR = 0, greenR = 0, blueR = 0;
 
 
             redL += ((unsigned char) *(dataBefore - 3));
@@ -942,7 +942,7 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
             blue = (blueL + blueM + blueR) / 9;
 
 
-            int maxi = (red > 0 ? red : 0);
+            register int maxi = (red > 0 ? red : 0);
             (*dest) = (unsigned char) (maxi < 255 ? maxi : 255);
             maxi = (green > 0 ? green : 0);
             (*(dest + 1)) = (unsigned char) (maxi < 255 ? maxi : 255);
@@ -981,7 +981,7 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
                 blue = (blueL + blueM + blueR) / 9;
 
 
-                int maxi = (red > 0 ? red : 0);
+                register int maxi = (red > 0 ? red : 0);
                 (*dest) = (unsigned char) (maxi < 255 ? maxi : 255);
                 maxi = (green > 0 ? green : 0);
                 (*(dest + 1)) = (unsigned char) (maxi < 255 ? maxi : 255);
@@ -1039,8 +1039,8 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
         for (i = until; i > 0; i--) {
             for (j = until; j > 0; j--) {
 
-                char *dataBefore = data - m3, *dataAfter = data + m3;
-                int red = 0, green = 0, blue = 0;
+                register char *dataBefore = data - m3, *dataAfter = data + m3;
+                register int red = 0, green = 0, blue = 0;
 
                 red -= ((unsigned char) *(dataBefore - 3));
                 green -= ((unsigned char) *(dataBefore - 2));
@@ -1080,7 +1080,7 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
                 green -= ((unsigned char) *(dataAfter + 4));
                 blue -= ((unsigned char) *(dataAfter + 5));
 
-                int maxi = (red > 0 ? red : 0);
+                register int maxi = (red > 0 ? red : 0);
                 (*dest) = (unsigned char) (maxi < 255 ? maxi : 255);
                 maxi = (green > 0 ? green : 0);
                 (*(dest + 1)) = (unsigned char) (maxi < 255 ? maxi : 255);
@@ -1138,10 +1138,10 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
         for (i = until; i > 0; i--) {
             for (j = until; j > 0; j--) {
 
-                char *dataBefore = data - m3, *dataAfter = data + m3;
-                int red = 0, green = 0, blue = 0;
+                register char *dataBefore = data - m3, *dataAfter = data + m3;
+                register int red = 0, green = 0, blue = 0;
 
-                int r, g, b, sums;
+                register int r, g, b, sums;
 
                 r = ((unsigned char) *(dataBefore - 3));
                 g = ((unsigned char) *(dataBefore - 2));
@@ -1151,8 +1151,8 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
                 blue += b;
 
                 sums = r + g + b;
-                int maxR = r, maxG = g, maxB = b, minR = r, minG = g, minB = b;
-                int max_intensity = sums, min_intensity = sums;
+                register int maxR = r, maxG = g, maxB = b, minR = r, minG = g, minB = b;
+                register int max_intensity = sums, min_intensity = sums;
 
                 r = ((unsigned char) *dataBefore);
                 g = ((unsigned char) *(dataBefore + 1));
@@ -1334,7 +1334,7 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
                 // optimization- reduce call to max and min on the stack
                 //*******************************************************************
                 // truncate each pixel's color values to match the range [0,255]
-                int maxi = (red > 0 ? red : 0);
+                register int maxi = (red > 0 ? red : 0);
                 (*dest) = (unsigned char) (maxi < 255 ? maxi : 255);
                 maxi = (green > 0 ? green : 0);
                 (*(dest + 1)) = (unsigned char) (maxi < 255 ? maxi : 255);
@@ -1388,8 +1388,8 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
         for (i = until; i > 0; i--) {
             for (j = until; j > 0; j--) {
 
-                char *dataBefore = data - m3, *dataAfter = data + m3;
-                int red = 0, green = 0, blue = 0;
+                register char *dataBefore = data - m3, *dataAfter = data + m3;
+                register int red = 0, green = 0, blue = 0;
 
                 red -= ((unsigned char) *(dataBefore - 3));
                 green -= ((unsigned char) *(dataBefore - 2));
@@ -1429,7 +1429,7 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
                 green -= ((unsigned char) *(dataAfter + 4));
                 blue -= ((unsigned char) *(dataAfter + 5));
 
-                int maxi = (red > 0 ? red : 0);
+                register int maxi = (red > 0 ? red : 0);
                 (*dest) = (unsigned char) (maxi < 255 ? maxi : 255);
                 maxi = (green > 0 ? green : 0);
                 (*(dest + 1)) = (unsigned char) (maxi < 255 ? maxi : 255);
