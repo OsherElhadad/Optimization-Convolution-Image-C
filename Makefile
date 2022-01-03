@@ -1,7 +1,7 @@
 LDLIBS = -lm   -lglut -lGL -lGLU -lX11 -lXmu -lXi -L/usr/X11R6/lib
 
 run: showBMP
-	./showBMP gibson_500.bmp 2
+	./showBMP gibson_500.bmp 1
 
 showBMP: showBMP.o readBMP.o writeBMP.o
 	gcc -pg -o showBMP readBMP.o writeBMP.o showBMP.o $(LDLIBS)

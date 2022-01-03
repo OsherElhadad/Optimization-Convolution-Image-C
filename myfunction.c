@@ -1,939 +1,148 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
+void writeBMPOpt(Image *image, const char* originalImgFileName, const char* fileName) {
 
-//static void copy_words(void * dst, const void * src, size_t words)
-//{
-//    const uint64_t  * src64;
-//    uint64_t        * dst64;
-//    uint64_t        pages;
-//    uint64_t        offset;
-//
-//    pages = words / 8;
-//    offset = words - pages * 8;
-//    src64 = (const uint64_t *)src;
-//    dst64 = (uint64_t *)dst;
-//    while (pages--)
-//    {
-//        *dst64++ = *src64++;
-//        *dst64++ = *src64++;
-//        *dst64++ = *src64++;
-//        *dst64++ = *src64++;
-//        *dst64++ = *src64++;
-//        *dst64++ = *src64++;
-//        *dst64++ = *src64++;
-//        *dst64++ = *src64++;
-//    }
-//    while (offset--)
-//        *dst64++ = *src64++;
-//}
-//static void copy_small(void * dst, const void * src, size_t size)
-//{
-//    const uint64_t  * src64;
-//    uint64_t        * dst64;
-//
-//    src64 = (const uint64_t *)src;
-//    dst64 = (uint64_t *)dst;
-//    *dst64 = *src64;
-//}
-//
-//static void mem_cpy(void * dst, const void * src, const size_t size)
-//{
-//    const uint8_t   * src8;
-//    uint8_t         * dst8;
-//    size_t          offset;
-//    size_t          words;
-//    size_t          aligned_size;
-//
-//    if (!src || !dst)
-//        return;
-//    if (size <= 8)
-//    {
-//        *(u_int64_t *)dst = *(const uint64_t *)src;
-//        return;
-//    }
-//    words = size / 8;
-//    aligned_size = words * 8;
-//    offset = size - aligned_size;
-//    copy_words(dst, src, words);
-//    if (offset)
-//    {
-//        src8 = (const uint8_t *)src;
-//        src8 = &src8[aligned_size];
-//        dst8 = (uint8_t *)dst;
-//        dst8 = &dst8[aligned_size];
-//        while (offset--)
-//            *dst8++ = *src8++;
-//    }
-//    return;
-//}
+    // open the file to be written
+    FILE * bmpfile;
+    bmpfile = fopen(fileName, "wb");
+    if (NULL == bmpfile) {
+        printf("Error opening output file\n");
+        // close all open files and free any allocated memory
+        exit (1);
+    }
 
-//static void mem_cpy2(void * dst, const void * src, const size_t size)
-//{
-//    int words = size / 8, aligned_size = words * 8, offset = size - aligned_size;
-//
-//    int pages = words / 8, offset2 = words - pages * 8;
-//    long* src64 = (long *)src, *dst64 = (long *)dst;
-//    while (pages--)
-//    {
-//        *(dst64++) = *(src64++);
-//        *(dst64++) = *(src64++);
-//        *(dst64++) = *(src64++);
-//        *(dst64++) = *(src64++);
-//        *(dst64++) = *(src64++);
-//        *(dst64++) = *(src64++);
-//        *(dst64++) = *(src64++);
-//        *(dst64++) = *(src64++);
-//    }
-//    while (offset2--)
-//        *(dst64++) = *(src64++);
-//
-//    if (offset)
-//    {
-//        char * src8 = (char *)src;
-//        src8 = &src8[aligned_size];
-//        char * dst8 = (char *)dst;
-//        dst8 = &dst8[aligned_size];
-//        while (offset--)
-//            *(dst8++) = *(src8++);
-//    }
-//}
+    // open BMP file of original image
+    FILE * srcFile;
+    if ((srcFile = fopen(originalImgFileName, "rb")) == NULL) {
+        printf("File Not Found : %s\n", originalImgFileName);
+        exit (1);
+    }
 
+    // read header of original image
+    char originalHeader[54];
+    fread(&originalHeader, 1, 54, srcFile);
 
-//
-//void smooth1(Image *image1, int kernelScale, bool filter) {
-//
-//    int m3 = 3*m, mn3 = m3*n;
-//    char *dest = (char *)malloc(mn3), *dest1 = dest + m3, *dest2 = dest;
-//    char *data = image1->data, *src1 = data + m3;
-//    int i, j, until = m - 2;
-//
-//    //*******************************************************************
-//    // optimization- calculate pointer add 1 without calculate index
-//    //*******************************************************************
-////    for (int k = 0; k < m3; ++k) {
-////        (*dest) = (*data);
-////        data++;
-////        dest++;
-////    }
-////    mem_cpy(dest, data, m3);
-//    dest+=m3;
-//    data+=m3;
-//    (*(int*)dest) = (*(int*)data);
-//    data+=3;
-//    dest+=3;
-//    for (i = until; i > 0; i--) {
-////        (*dest) = (*data);
-////        data++;
-////        dest++;
-////        (*dest) = (*data);
-////        data++;
-////        dest++;
-////        (*dest) = (*data);
-////        data++;
-////        dest++;
-//        for (j = until; j > 0; j--) {
-//
-//            char *dataBefore = data - m3, *dataAfter = data + m3;
-//            //pixel loop_pixel;
-//
-//            //initialize_pixel_sum(&sum);
-//
-//            //*******************************************************************
-//            // optimization- reduce using struct pixel_sum
-//            //*******************************************************************
-//            int red = 0, green = 0, blue = 0;
-//
-//            //*******************************************************************
-//            // optimization- reduce multiple loops
-//            //*******************************************************************
-//            if (!filter) {
-//
-//                // apply kernel on pixel at [ii,jj]
-//                //sum_pixels_by_weight(&sum, src[calcIndex(ii, jj, dim)], kernel[kRow][kCol]);
-//
-//                //*******************************************************************
-//                // optimization- reduce call to calcIndex
-//                //*******************************************************************
-//
-//                //*******************************************************************
-//                // optimization- reduce call to sum_pixel_by_weight
-//                //*******************************************************************
-//
-//                red += ((unsigned char)*(dataBefore - 3));
-//                green += ((unsigned char)*(dataBefore - 2));
-//                blue += ((unsigned char)*(dataBefore - 1));
-//
-//                red += ((unsigned char)*dataBefore);
-//                green += ((unsigned char)*(dataBefore + 1));
-//                blue += ((unsigned char)*(dataBefore + 2));
-//
-//                red += ((unsigned char)*(dataBefore + 3));
-//                green += ((unsigned char)*(dataBefore + 4));
-//                blue += ((unsigned char)*(dataBefore + 5));
-//
-//
-//
-//                red += ((unsigned char)*(data - 3));
-//                green += ((unsigned char)*(data - 2));
-//                blue += ((unsigned char)*(data - 1));
-//
-//                red += ((unsigned char)*data);
-//                green += ((unsigned char)*(data + 1));
-//                blue += ((unsigned char)*(data + 2));
-//
-//                red += ((unsigned char)*(data + 3));
-//                green += ((unsigned char)*(data + 4));
-//                blue += ((unsigned char)*(data + 5));
-//
-//
-//
-//                red += ((unsigned char)*(dataAfter - 3));
-//                green += ((unsigned char)*(dataAfter - 2));
-//                blue += ((unsigned char)*(dataAfter - 1));
-//
-//                red += ((unsigned char)*dataAfter);
-//                green += ((unsigned char)*(dataAfter + 1));
-//                blue += ((unsigned char)*(dataAfter + 2));
-//
-//                red += ((unsigned char)*(dataAfter + 3));
-//                green += ((unsigned char)*(dataAfter + 4));
-//                blue += ((unsigned char)*(dataAfter + 5));
-//            } else {
-//
-//                // apply kernel on pixel at [ii,jj]
-//                // sum_pixels_by_weight(&sum, src[calcIndex(ii, jj, dim)], kernel[kRow][kCol]);
-//
-//                //*******************************************************************
-//                // optimization- reduce call to calcIndex
-//                //*******************************************************************
-//
-//                //*******************************************************************
-//                // optimization- reduce call to sum_pixel_by_weight
-//                //*******************************************************************
-//                int r, g, b, sums;
-//
-//                r = ((unsigned char)*(dataBefore - 3));
-//                g = ((unsigned char)*(dataBefore - 2));
-//                b = ((unsigned char)*(dataBefore - 1));
-//                red += r;
-//                green += g;
-//                blue += b;
-//
-//                sums = r + g + b;
-//                int maxR = r, maxG = g, maxB = b, minR = r, minG = g, minB = b;
-//                int max_intensity = sums, min_intensity = sums;
-//
-//                r = ((unsigned char)*dataBefore);
-//                g = ((unsigned char)*(dataBefore + 1));
-//                b = ((unsigned char)*(dataBefore + 2));
-//                red += r;
-//                green += g;
-//                blue += b;
-//
-//                sums = r + g + b;
-//                if (sums <= min_intensity) {
-//                    min_intensity = sums;
-//                    minR = r;
-//                    minG = g;
-//                    minB = b;
-//                } else if (sums > max_intensity) {
-//                    max_intensity = sums;
-//                    maxR = r;
-//                    maxG = g;
-//                    maxB = b;
-//                }
-//
-//                r = ((unsigned char)*(dataBefore + 3));
-//                g = ((unsigned char)*(dataBefore + 4));
-//                b = ((unsigned char)*(dataBefore + 5));
-//                red += r;
-//                green += g;
-//                blue += b;
-//
-//                sums = r + g + b;
-//                if (sums <= min_intensity) {
-//                    min_intensity = sums;
-//                    minR = r;
-//                    minG = g;
-//                    minB = b;
-//                } else if (sums > max_intensity) {
-//                    max_intensity = sums;
-//                    maxR = r;
-//                    maxG = g;
-//                    maxB = b;
-//                }
-//
-//
-//
-//                r = ((unsigned char)*(data - 3));
-//                g = ((unsigned char)*(data - 2));
-//                b = ((unsigned char)*(data - 1));
-//                red += r;
-//                green += g;
-//                blue += b;
-//
-//                sums = r + g + b;
-//                if (sums <= min_intensity) {
-//                    min_intensity = sums;
-//                    minR = r;
-//                    minG = g;
-//                    minB = b;
-//                } else if (sums > max_intensity) {
-//                    max_intensity = sums;
-//                    maxR = r;
-//                    maxG = g;
-//                    maxB = b;
-//                }
-//
-//                r = ((unsigned char)*data);
-//                g = ((unsigned char)*(data + 1));
-//                b = ((unsigned char)*(data + 2));
-//                red += r;
-//                green += g;
-//                blue += b;
-//
-//                sums = r + g + b;
-//                if (sums <= min_intensity) {
-//                    min_intensity = sums;
-//                    minR = r;
-//                    minG = g;
-//                    minB = b;
-//                } else if (sums > max_intensity) {
-//                    max_intensity = sums;
-//                    maxR = r;
-//                    maxG = g;
-//                    maxB = b;
-//                }
-//
-//                r = ((unsigned char)*(data + 3));
-//                g = ((unsigned char)*(data + 4));
-//                b = ((unsigned char)*(data + 5));
-//                red += r;
-//                green += g;
-//                blue += b;
-//
-//                sums = r + g + b;
-//                if (sums <= min_intensity) {
-//                    min_intensity = sums;
-//                    minR = r;
-//                    minG = g;
-//                    minB = b;
-//                } else if (sums > max_intensity) {
-//                    max_intensity = sums;
-//                    maxR = r;
-//                    maxG = g;
-//                    maxB = b;
-//                }
-//
-//
-//
-//                r = ((unsigned char)*(dataAfter - 3));
-//                g = ((unsigned char)*(dataAfter - 2));
-//                b = ((unsigned char)*(dataAfter - 1));
-//                red += r;
-//                green += g;
-//                blue += b;
-//
-//                sums = r + g + b;
-//                if (sums <= min_intensity) {
-//                    min_intensity = sums;
-//                    minR = r;
-//                    minG = g;
-//                    minB = b;
-//                } else if (sums > max_intensity) {
-//                    max_intensity = sums;
-//                    maxR = r;
-//                    maxG = g;
-//                    maxB = b;
-//                }
-//
-//                r = ((unsigned char)*dataAfter);
-//                g = ((unsigned char)*(dataAfter + 1));
-//                b = ((unsigned char)*(dataAfter + 2));
-//                red += r;
-//                green += g;
-//                blue += b;
-//
-//                sums = r + g + b;
-//                if (sums <= min_intensity) {
-//                    min_intensity = sums;
-//                    minR = r;
-//                    minG = g;
-//                    minB = b;
-//                } else if (sums > max_intensity) {
-//                    max_intensity = sums;
-//                    maxR = r;
-//                    maxG = g;
-//                    maxB = b;
-//                }
-//
-//                r = ((unsigned char)*(dataAfter + 3));
-//                g = ((unsigned char)*(dataAfter + 4));
-//                b = ((unsigned char)*(dataAfter + 5));
-//                red += r;
-//                green += g;
-//                blue += b;
-//
-//                sums = r + g + b;
-//                if (sums <= min_intensity) {
-//                    min_intensity = sums;
-//                    minR = r;
-//                    minG = g;
-//                    minB = b;
-//                } else if (sums > max_intensity) {
-//                    max_intensity = sums;
-//                    maxR = r;
-//                    maxG = g;
-//                    maxB = b;
-//                }
-//
-//
-//                red -= minR;
-//                red -= maxR;
-//                green -= minG;
-//                green -= maxG;
-//                blue -= minB;
-//                blue -= maxB;
-//            }
-//
-//            //*******************************************************************
-//            // optimization- reduce call to assign_sum_to_pixel on the stack
-//            //*******************************************************************
-//            // assign kernel's result to pixel at [i,j]
-//
-//            // divide by kernel's weight
-//            red = red / kernelScale;
-//            green = green / kernelScale;
-//            blue = blue / kernelScale;
-//
-//            //*******************************************************************
-//            // optimization- reduce call to max and min on the stack
-//            //*******************************************************************
-//            // truncate each pixel's color values to match the range [0,255]
-//            int maxi = (red > 0 ? red : 0);
-//            (*dest) = (unsigned char) (maxi < 255 ? maxi : 255);
-//            maxi = (green > 0 ? green : 0);
-//            (*(dest + 1)) = (unsigned char) (maxi < 255 ? maxi : 255);
-//            maxi = (blue > 0 ? blue : 0);
-//            (*(dest + 2)) = (unsigned char) (maxi < 255 ? maxi : 255);
-//
-//
-//            data += 3;
-//            dest += 3;
-//        }
-//
-////        (*dest) = (*data);
-////        data++;
-////        dest++;
-////        (*dest) = (*data);
-////        data++;
-////        dest++;
-////        (*dest) = (*data);
-////        data++;
-////        dest++;
-//        (*(long*)dest) = (*(long*)data);
-//        data+=6;
-//        dest+=6;
-//    }
-////    for (int k = 0; k < m3; ++k) {
-////        (*dest) = (*data);
-////        data++;
-////        dest++;
-////    }
-////    mem_cpy(dest, data, m3);
-////    dest+=m3;
-////    data+=m3;
-////    mem_cpy(src1, dest1, mn3 - m3 - m3);
-//    int size = mn3 - m3 - m3, words = size / 8, aligned_size = words * 8, offset = size - aligned_size;
-//    int pages = words / 8, offset2 = words - pages * 8;
-//    long* src64 = (long *)src1, *dst64 = (long *)dest1;
-//    while (pages--) {
-//        *(src64++) = *(dst64++);
-//        *(src64++) = *(dst64++);
-//        *(src64++) = *(dst64++);
-//        *(src64++) = *(dst64++);
-//        *(src64++) = *(dst64++);
-//        *(src64++) = *(dst64++);
-//        *(src64++) = *(dst64++);
-//        *(src64++) = *(dst64++);
-//    }
-//    while (offset2--)
-//        *(src64++) = *(dst64++);
-//
-//    if (offset) {
-//        src1 = &src1[aligned_size];
-//        dest1 = &dest1[aligned_size];
-//        while (offset--)
-//            *(src1++) = *(dest1++);
-//    }
-////    for (int k = 0; k < mn3; ++k) {
-////        (*src1) = (*dest1);
-////        src1++;
-////        dest1++;
-////    }
-//    free(dest2);
-//}
-//
-//
-//
-//
-//
-///*
-//* Apply the kernel over each pixel.
-//* Ignore pixels where the kernel exceeds bounds. These are pixels with row index smaller than kernelSize/2 and/or
-//* column index smaller than kernelSize/2
-//*/
-//void smooth2(Image *image1, int kernelScale, bool filter) {
-//
-//    int m3 = 3*m, mn3 = m3*n;
-//    char *dest = (char *)malloc(mn3), *dest1 = dest + m3, *dest2 = dest;
-//    char *data = image1->data, *src1 = data + m3;
-//    int i, j, until = m - 1;
-//
-//    //*******************************************************************
-//    // optimization- calculate pointer add 1 without calculate index
-//    //*******************************************************************
-////    for (int k = 0; k < m3; ++k) {
-////        (*dest) = (*data);
-////        data++;
-////        dest++;
-////    }
-////    mem_cpy(dest, data, m3);
-//    dest+=m3;
-//    data+=m3;
-//    for (i = 1; i < until; i++) {
-////        (*dest) = (*data);
-////        data++;
-////        dest++;
-////        (*dest) = (*data);
-////        data++;
-////        dest++;
-////        (*dest) = (*data);
-////        data++;
-////        dest++;
-//        (*(int*)dest) = (*(int*)data);
-//        data+=3;
-//        dest+=3;
-//        for (j = 1; j < until; j++) {
-//
-//            char *dataBefore = data - m3, *dataAfter = data + m3;
-//            //pixel loop_pixel;
-//
-//            //initialize_pixel_sum(&sum);
-//
-//            //*******************************************************************
-//            // optimization- reduce using struct pixel_sum
-//            //*******************************************************************
-//            int red = 0, green = 0, blue = 0;
-//
-//            //*******************************************************************
-//            // optimization- reduce multiple loops
-//            //*******************************************************************
-//            if (!filter) {
-//
-//                // apply kernel on pixel at [ii,jj]
-//                //sum_pixels_by_weight(&sum, src[calcIndex(ii, jj, dim)], kernel[kRow][kCol]);
-//
-//                //*******************************************************************
-//                // optimization- reduce call to calcIndex
-//                //*******************************************************************
-//
-//                //*******************************************************************
-//                // optimization- reduce call to sum_pixel_by_weight
-//                //*******************************************************************
-//
-//                red -= ((unsigned char)*(dataBefore - 3));
-//                green -= ((unsigned char)*(dataBefore - 2));
-//                blue -= ((unsigned char)*(dataBefore - 1));
-//
-//                red -= ((unsigned char)*dataBefore);
-//                green -= ((unsigned char)*(dataBefore + 1));
-//                blue -= ((unsigned char)*(dataBefore + 2));
-//
-//                red -= ((unsigned char)*(dataBefore + 3));
-//                green -= ((unsigned char)*(dataBefore + 4));
-//                blue -= ((unsigned char)*(dataBefore + 5));
-//
-//
-//
-//                red -= ((unsigned char)*(data - 3));
-//                green -= ((unsigned char)*(data - 2));
-//                blue -= ((unsigned char)*(data - 1));
-//
-//                red += ((unsigned char)*data) * 9;
-//                green += ((unsigned char)*(data + 1)) * 9;
-//                blue += ((unsigned char)*(data + 2)) * 9;
-//
-//                red -= ((unsigned char)*(data + 3));
-//                green -= ((unsigned char)*(data + 4));
-//                blue -= ((unsigned char)*(data + 5));
-//
-//
-//
-//                red -= ((unsigned char)*(dataAfter - 3));
-//                green -= ((unsigned char)*(dataAfter - 2));
-//                blue -= ((unsigned char)*(dataAfter - 1));
-//
-//                red -= ((unsigned char)*dataAfter);
-//                green -= ((unsigned char)*(dataAfter + 1));
-//                blue -= ((unsigned char)*(dataAfter + 2));
-//
-//                red -= ((unsigned char)*(dataAfter + 3));
-//                green -= ((unsigned char)*(dataAfter + 4));
-//                blue -= ((unsigned char)*(dataAfter + 5));
-//            } else {
-//
-//                // apply kernel on pixel at [ii,jj]
-//                // sum_pixels_by_weight(&sum, src[calcIndex(ii, jj, dim)], kernel[kRow][kCol]);
-//
-//                //*******************************************************************
-//                // optimization- reduce call to calcIndex
-//                //*******************************************************************
-//
-//                //*******************************************************************
-//                // optimization- reduce call to sum_pixel_by_weight
-//                //*******************************************************************
-//                int r, g, b, sums;
-//
-//                r = -((unsigned char)*(dataBefore - 3));
-//                g = -((unsigned char)*(dataBefore - 2));
-//                b = -((unsigned char)*(dataBefore - 1));
-//                red += r;
-//                green += g;
-//                blue += b;
-//
-//                sums = r + g + b;
-//                int maxR = r, maxG = g, maxB = b, minR = r, minG = g, minB = b;
-//                int max_intensity = sums, min_intensity = sums;
-//
-//                r = -((unsigned char)*dataBefore);
-//                g = -((unsigned char)*(dataBefore + 1));
-//                b = -((unsigned char)*(dataBefore + 2)) ;
-//                red += r;
-//                green += g;
-//                blue += b;
-//
-//                sums = r + g + b;
-//                if (sums <= min_intensity) {
-//                    min_intensity = sums;
-//                    minR = r;
-//                    minG = g;
-//                    minB = b;
-//                } else if (sums > max_intensity) {
-//                    max_intensity = sums;
-//                    maxR = r;
-//                    maxG = g;
-//                    maxB = b;
-//                }
-//
-//                r = -((unsigned char)*(dataBefore + 3));
-//                g = -((unsigned char)*(dataBefore + 4));
-//                b = -((unsigned char)*(dataBefore + 5));
-//                red += r;
-//                green += g;
-//                blue += b;
-//
-//                sums = r + g + b;
-//                if (sums <= min_intensity) {
-//                    min_intensity = sums;
-//                    minR = r;
-//                    minG = g;
-//                    minB = b;
-//                } else if (sums > max_intensity) {
-//                    max_intensity = sums;
-//                    maxR = r;
-//                    maxG = g;
-//                    maxB = b;
-//                }
-//
-//
-//
-//                r = -((unsigned char)*(data - 3));
-//                g = -((unsigned char)*(data - 2));
-//                b = -((unsigned char)*(data - 1));
-//                red += r;
-//                green += g;
-//                blue += b;
-//
-//                sums = r + g + b;
-//                if (sums <= min_intensity) {
-//                    min_intensity = sums;
-//                    minR = r;
-//                    minG = g;
-//                    minB = b;
-//                } else if (sums > max_intensity) {
-//                    max_intensity = sums;
-//                    maxR = r;
-//                    maxG = g;
-//                    maxB = b;
-//                }
-//
-//                r = ((unsigned char)*data) * 9;
-//                g = ((unsigned char)*(data + 1)) * 9;
-//                b = ((unsigned char)*(data + 2)) * 9;
-//                red += r;
-//                green += g;
-//                blue += b;
-//
-//                sums = r + g + b;
-//                if (sums <= min_intensity) {
-//                    min_intensity = sums;
-//                    minR = r;
-//                    minG = g;
-//                    minB = b;
-//                } else if (sums > max_intensity) {
-//                    max_intensity = sums;
-//                    maxR = r;
-//                    maxG = g;
-//                    maxB = b;
-//                }
-//
-//                r = -((unsigned char)*(data + 3));
-//                g = -((unsigned char)*(data + 4));
-//                b = -((unsigned char)*(data + 5));
-//                red += r;
-//                green += g;
-//                blue += b;
-//
-//                sums = r + g + b;
-//                if (sums <= min_intensity) {
-//                    min_intensity = sums;
-//                    minR = r;
-//                    minG = g;
-//                    minB = b;
-//                } else if (sums > max_intensity) {
-//                    max_intensity = sums;
-//                    maxR = r;
-//                    maxG = g;
-//                    maxB = b;
-//                }
-//
-//
-//
-//                r = -((unsigned char)*(dataAfter - 3));
-//                g = -((unsigned char)*(dataAfter - 2));
-//                b = -((unsigned char)*(dataAfter - 1));
-//                red += r;
-//                green += g;
-//                blue += b;
-//
-//                sums = r + g + b;
-//                if (sums <= min_intensity) {
-//                    min_intensity = sums;
-//                    minR = r;
-//                    minG = g;
-//                    minB = b;
-//                } else if (sums > max_intensity) {
-//                    max_intensity = sums;
-//                    maxR = r;
-//                    maxG = g;
-//                    maxB = b;
-//                }
-//
-//                r = -((unsigned char)*dataAfter);
-//                g = -((unsigned char)*(dataAfter + 1));
-//                b = -((unsigned char)*(dataAfter + 2));
-//                red += r;
-//                green += g;
-//                blue += b;
-//
-//                sums = r + g + b;
-//                if (sums <= min_intensity) {
-//                    min_intensity = sums;
-//                    minR = r;
-//                    minG = g;
-//                    minB = b;
-//                } else if (sums > max_intensity) {
-//                    max_intensity = sums;
-//                    maxR = r;
-//                    maxG = g;
-//                    maxB = b;
-//                }
-//
-//                r = -((unsigned char)*(dataAfter + 3));
-//                g = -((unsigned char)*(dataAfter + 4));
-//                b = -((unsigned char)*(dataAfter + 5));
-//                red += r;
-//                green += g;
-//                blue += b;
-//
-//                sums = r + g + b;
-//                if (sums <= min_intensity) {
-//                    min_intensity = sums;
-//                    minR = r;
-//                    minG = g;
-//                    minB = b;
-//                } else if (sums > max_intensity) {
-//                    max_intensity = sums;
-//                    maxR = r;
-//                    maxG = g;
-//                    maxB = b;
-//                }
-//
-//
-//                red -= minR;
-//                red -= maxR;
-//                green -= minG;
-//                green -= maxG;
-//                blue -= minB;
-//                blue -= maxB;
-//            }
-//
-//            //*******************************************************************
-//            // optimization- reduce call to assign_sum_to_pixel on the stack
-//            //*******************************************************************
-//            // assign kernel's result to pixel at [i,j]
-//
-//            //*******************************************************************
-//            // optimization- reduce call to max and min on the stack
-//            //*******************************************************************
-//            // truncate each pixel's color values to match the range [0,255]
-//            int maxi = (red > 0 ? red : 0);
-//            (*dest) = (unsigned char) (maxi < 255 ? maxi : 255);
-//            maxi = (green > 0 ? green : 0);
-//            (*(dest + 1)) = (unsigned char) (maxi < 255 ? maxi : 255);
-//            maxi = (blue > 0 ? blue : 0);
-//            (*(dest + 2)) = (unsigned char) (maxi < 255 ? maxi : 255);
-//
-//
-//            data += 3;
-//            dest += 3;
-//        }
-//
-////        (*dest) = (*data);
-////        data++;
-////        dest++;
-////        (*dest) = (*data);
-////        data++;
-////        dest++;
-////        (*dest) = (*data);
-////        data++;
-////        dest++;
-//        (*(int*)dest) = (*(int*)data);
-//        data+=3;
-//        dest+=3;
-//    }
-////    for (int k = 0; k < m3; ++k) {
-////        (*dest) = (*data);
-////        data++;
-////        dest++;
-////    }
-////    mem_cpy(dest, data, m3);
-////    dest+=m3;
-////    data+=m3;
-////    mem_cpy(src1, dest1, mn3 - m3 - m3);
-//
-//    int size = mn3 - m3 - m3, words = size / 8, aligned_size = words * 8, offset = size - aligned_size;
-//    int pages = words / 8, offset2 = words - pages * 8;
-//    long* src64 = (long *)src1, *dst64 = (long *)dest1;
-//    while (pages--) {
-//        *(src64++) = *(dst64++);
-//        *(src64++) = *(dst64++);
-//        *(src64++) = *(dst64++);
-//        *(src64++) = *(dst64++);
-//        *(src64++) = *(dst64++);
-//        *(src64++) = *(dst64++);
-//        *(src64++) = *(dst64++);
-//        *(src64++) = *(dst64++);
-//    }
-//    while (offset2--)
-//        *(src64++) = *(dst64++);
-//
-//    if (offset) {
-//        src1 = &src1[aligned_size];
-//        dest1 = &dest1[aligned_size];
-//        while (offset--)
-//            *(src1++) = *(dest1++);
-//    }
-//
-////    for (int k = 0; k < mn3; ++k) {
-////        (*src1) = (*dest1);
-////        src1++;
-////        dest1++;
-////    }
-//    free(dest2);
-//}
+    // write the BMP file header
+    fwrite(&originalHeader, 1, 54, bmpfile);
+
+    // close BMP file of original image
+    fclose(srcFile);
+
+    // calculate number of bytes per each line
+    register int bytesPerLine = m * 3;  // for 24 bit images
+    // round up to a dword boundary
+    if (bytesPerLine & 0x0003) {
+        bytesPerLine |= 0x0003;
+        ++bytesPerLine;
+    }
+
+    // allocate buffer to hold one line of the image
+    char *linebuf;
+    linebuf = (char *) calloc(1, bytesPerLine);
+    if (linebuf == NULL) {
+        printf ("Error allocating memory\n");
+        // close all open files and free any allocated memory
+        exit (1);
+    }
+
+    // write the image line by line - start with the lowest line
+    register int i, line = m;
+    register char* iData = image->data, *ilinebuf;
+    for (; line >= 0; --line) {
+
+        ilinebuf = linebuf;
+        /*
+        * fill line linebuf with the image data for that line
+        * remember that the order is BGR
+        */
+        for (i = bytesPerLine; i > 0 ; i -= 3) {
+
+            *(ilinebuf++) = *(iData + 2);
+            *(ilinebuf++) = *(iData + 1);
+            *(ilinebuf++) = *iData;
+
+            iData+=3;
+        }
+
+        /*
+        * remember that the order is BGR and if width is not a multiple
+        * of 4 then the last few bytes may be unused
+        */
+        fwrite(linebuf, 1, bytesPerLine, bmpfile);
+    }
+
+    // close the image file
+    fclose(bmpfile);
+}
+
 
 
 void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sharpRsltImgName, char* filteredBlurRsltImgName, char* filteredSharpRsltImgName, char flag) {
 
-	/*
-	* [1, 1, 1]
-	* [1, 1, 1]
-	* [1, 1, 1]
-	*/
-	//int blurKernel[9] = {1, 1, 1, 1, 1, 1, 1, 1, 1};
-
-	/*
-	* [-1, -1, -1]
-	* [-1, 9, -1]
-	* [-1, -1, -1]
-	*/
-	//int sharpKernel[9] = {-1,-1,-1,-1,9,-1,-1,-1,-1};
-
-    register int m3 = 3*m, mn3 = m3*n;
-    register char *dest = (char *)malloc(mn3), *dest1 = dest + m3, *dest2 = dest;
-    register char *data = image->data, *src1 = data + m3;
+    register int m3 = 3 * m, mn3 = m3 * n, maxi;
+    register unsigned char *dest = (unsigned char *) malloc(mn3), *dest1 = dest + m3, *dest2 = dest;
+    register unsigned char *data = (unsigned char *) image->data, *src1 = data + m3;
     register int i, j, until = m - 2;
     register int size = mn3 - m3 - m3, words = size / 8, aligned_size = words * 8, offset = size - aligned_size;
     register int pages = words / 8, offset2 = words - pages * 8;
-    register long* src64 = (long *)src1, *dst64 = (long *)dest1;
+    register long *src64 = (long *) src1, *dst64 = (long *) dest1;
 
-	if (flag == '1') {	
-		// blur image
-		//doConvolution(image, blurKernel, 9, false);
+    if (flag == '1') {
+        // blur image
+        //doConvolution(image, blurKernel, 9, false);
         //smooth1(image, 9, false);
 
         dest = dest1;
         data = src1;
-        (*(int*)dest) = (*(int*)data);
-        data+=3;
-        dest+=3;
+        (*(int *) dest) = (*(int *) data);
+        data += 3;
+        dest += 3;
         for (i = until; i > 0; i--) {
             register int red = 0, green = 0, blue = 0;
-            register char *dataBefore = data - m3, *dataAfter = data + m3;
+            register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
             register int redL = 0, greenL = 0, blueL = 0, redM = 0, greenM = 0, blueM = 0, redR = 0, greenR = 0, blueR = 0;
 
 
-            redL += ((unsigned char) *(dataBefore - 3));
-            greenL += ((unsigned char) *(dataBefore - 2));
-            blueL += ((unsigned char) *(dataBefore - 1));
+            redL += *(dataBefore - 3);
+            greenL += *(dataBefore - 2);
+            blueL += *(dataBefore - 1);
 
-            redM += ((unsigned char) *dataBefore);
-            greenM += ((unsigned char) *(dataBefore + 1));
-            blueM += ((unsigned char) *(dataBefore + 2));
+            redM += *dataBefore;
+            greenM += *(dataBefore + 1);
+            blueM += *(dataBefore + 2);
 
-            redR += ((unsigned char) *(dataBefore + 3));
-            greenR += ((unsigned char) *(dataBefore + 4));
-            blueR += ((unsigned char) *(dataBefore + 5));
-
-
-            redL += ((unsigned char) *(data - 3));
-            greenL += ((unsigned char) *(data - 2));
-            blueL += ((unsigned char) *(data - 1));
-
-            redM += ((unsigned char) *data);
-            greenM += ((unsigned char) *(data + 1));
-            blueM += ((unsigned char) *(data + 2));
-
-            redR += ((unsigned char) *(data + 3));
-            greenR += ((unsigned char) *(data + 4));
-            blueR += ((unsigned char) *(data + 5));
+            redR += *(dataBefore + 3);
+            greenR += *(dataBefore + 4);
+            blueR += *(dataBefore + 5);
 
 
-            redL += ((unsigned char) *(dataAfter - 3));
-            greenL += ((unsigned char) *(dataAfter - 2));
-            blueL += ((unsigned char) *(dataAfter - 1));
+            redL += *(data - 3);
+            greenL += *(data - 2);
+            blueL += *(data - 1);
 
-            redM += ((unsigned char) *dataAfter);
-            greenM += ((unsigned char) *(dataAfter + 1));
-            blueM += ((unsigned char) *(dataAfter + 2));
+            redM += *data;
+            greenM += *(data + 1);
+            blueM += *(data + 2);
 
-            redR += ((unsigned char) *(dataAfter + 3));
-            greenR += ((unsigned char) *(dataAfter + 4));
-            blueR += ((unsigned char) *(dataAfter + 5));
+            redR += *(data + 3);
+            greenR += *(data + 4);
+            blueR += *(data + 5);
+
+
+            redL += *(dataAfter - 3);
+            greenL += *(dataAfter - 2);
+            blueL += *(dataAfter - 1);
+
+            redM += *dataAfter;
+            greenM += *(dataAfter + 1);
+            blueM += *(dataAfter + 2);
+
+            redR += *(dataAfter + 3);
+            greenR += *(dataAfter + 4);
+            blueR += *(dataAfter + 5);
 
 
             // divide by kernel's weight
@@ -942,12 +151,12 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
             blue = (blueL + blueM + blueR) / 9;
 
 
-            register int maxi = (red > 0 ? red : 0);
-            (*dest) = (unsigned char) (maxi < 255 ? maxi : 255);
+            maxi = (red > 0 ? red : 0);
+            (*dest) = (maxi < 255 ? maxi : 255);
             maxi = (green > 0 ? green : 0);
-            (*(dest + 1)) = (unsigned char) (maxi < 255 ? maxi : 255);
+            (*(dest + 1)) = (maxi < 255 ? maxi : 255);
             maxi = (blue > 0 ? blue : 0);
-            (*(dest + 2)) = (unsigned char) (maxi < 255 ? maxi : 255);
+            (*(dest + 2)) = (maxi < 255 ? maxi : 255);
 
 
             data += 3;
@@ -962,17 +171,17 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
                 blueL = blueM;
                 blueM = blueR;
 
-                redR = ((unsigned char) *dataBefore);
-                greenR = ((unsigned char) *(dataBefore + 1));
-                blueR = ((unsigned char) *(dataBefore + 2));
+                redR = *dataBefore;
+                greenR = *(dataBefore + 1);
+                blueR = *(dataBefore + 2);
 
-                redR += ((unsigned char) *(data + 3));
-                greenR += ((unsigned char) *(data + 4));
-                blueR += ((unsigned char) *(data + 5));
+                redR += *(data + 3);
+                greenR += *(data + 4);
+                blueR += *(data + 5);
 
-                redR += ((unsigned char) *dataAfter);
-                greenR += ((unsigned char) *(dataAfter + 1));
-                blueR += ((unsigned char) *(dataAfter + 2));
+                redR += *dataAfter;
+                greenR += *(dataAfter + 1);
+                blueR += *(dataAfter + 2);
 
 
                 // divide by kernel's weight
@@ -981,21 +190,21 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
                 blue = (blueL + blueM + blueR) / 9;
 
 
-                register int maxi = (red > 0 ? red : 0);
-                (*dest) = (unsigned char) (maxi < 255 ? maxi : 255);
+                maxi = (red > 0 ? red : 0);
+                (*dest) = (maxi < 255 ? maxi : 255);
                 maxi = (green > 0 ? green : 0);
-                (*(dest + 1)) = (unsigned char) (maxi < 255 ? maxi : 255);
+                (*(dest + 1)) = (maxi < 255 ? maxi : 255);
                 maxi = (blue > 0 ? blue : 0);
-                (*(dest + 2)) = (unsigned char) (maxi < 255 ? maxi : 255);
+                (*(dest + 2)) = (maxi < 255 ? maxi : 255);
 
 
                 data += 3;
                 dest += 3;
             }
 
-            (*(long*)dest) = (*(long*)data);
-            data+=6;
-            dest+=6;
+            (*(long *) dest) = (*(long *) data);
+            data += 6;
+            dest += 6;
         }
 
         while (pages--) {
@@ -1020,132 +229,30 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
 
 
 
-		// write result image to file
-		writeBMP(image, srcImgpName, blurRsltImgName);	
-
-		// sharpen the resulting image
-		//doConvolution(image, sharpKernel, 1, false);
-//        smooth2(image, 1, false);
-
-        dest = dest2;
-        dest1 = dest + m3;
-        data = image->data;
-        src1 = data + m3;
-        dest = dest1;
-        data = src1;
-        (*(int*)dest) = (*(int*)data);
-        data+=3;
-        dest+=3;
-        for (i = until; i > 0; i--) {
-            for (j = until; j > 0; j--) {
-
-                register char *dataBefore = data - m3, *dataAfter = data + m3;
-                register int red = 0, green = 0, blue = 0;
-
-                red -= ((unsigned char) *(dataBefore - 3));
-                green -= ((unsigned char) *(dataBefore - 2));
-                blue -= ((unsigned char) *(dataBefore - 1));
-
-                red -= ((unsigned char) *dataBefore);
-                green -= ((unsigned char) *(dataBefore + 1));
-                blue -= ((unsigned char) *(dataBefore + 2));
-
-                red -= ((unsigned char) *(dataBefore + 3));
-                green -= ((unsigned char) *(dataBefore + 4));
-                blue -= ((unsigned char) *(dataBefore + 5));
-
-
-                red -= ((unsigned char) *(data - 3));
-                green -= ((unsigned char) *(data - 2));
-                blue -= ((unsigned char) *(data - 1));
-
-                red += ((unsigned char) *data) * 9;
-                green += ((unsigned char) *(data + 1)) * 9;
-                blue += ((unsigned char) *(data + 2)) * 9;
-
-                red -= ((unsigned char) *(data + 3));
-                green -= ((unsigned char) *(data + 4));
-                blue -= ((unsigned char) *(data + 5));
-
-
-                red -= ((unsigned char) *(dataAfter - 3));
-                green -= ((unsigned char) *(dataAfter - 2));
-                blue -= ((unsigned char) *(dataAfter - 1));
-
-                red -= ((unsigned char) *dataAfter);
-                green -= ((unsigned char) *(dataAfter + 1));
-                blue -= ((unsigned char) *(dataAfter + 2));
-
-                red -= ((unsigned char) *(dataAfter + 3));
-                green -= ((unsigned char) *(dataAfter + 4));
-                blue -= ((unsigned char) *(dataAfter + 5));
-
-                register int maxi = (red > 0 ? red : 0);
-                (*dest) = (unsigned char) (maxi < 255 ? maxi : 255);
-                maxi = (green > 0 ? green : 0);
-                (*(dest + 1)) = (unsigned char) (maxi < 255 ? maxi : 255);
-                maxi = (blue > 0 ? blue : 0);
-                (*(dest + 2)) = (unsigned char) (maxi < 255 ? maxi : 255);
-
-
-                data += 3;
-                dest += 3;
-            }
-
-            (*(long*)dest) = (*(long*)data);
-            data+=6;
-            dest+=6;
-        }
-
-        offset = size - aligned_size;
-        pages = words / 8;
-        offset2 = words - pages * 8;
-        src64 = (long *)src1;
-        dst64 = (long *)dest1;
-        while (pages--) {
-            *(src64++) = *(dst64++);
-            *(src64++) = *(dst64++);
-            *(src64++) = *(dst64++);
-            *(src64++) = *(dst64++);
-            *(src64++) = *(dst64++);
-            *(src64++) = *(dst64++);
-            *(src64++) = *(dst64++);
-            *(src64++) = *(dst64++);
-        }
-        while (offset2--)
-            *(src64++) = *(dst64++);
-
-        if (offset) {
-            src1 = &src1[aligned_size];
-            dest1 = &dest1[aligned_size];
-            while (offset--)
-                *(src1++) = *(dest1++);
-        }
-
-		// write result image to file
-		writeBMP(image, srcImgpName, sharpRsltImgName);	
-	} else {
-		// apply extermum filtered kernel to blur image
-		//doConvolution(image, blurKernel, 7, true);
+        // write result image to file
+        writeBMPOpt(image, srcImgpName, blurRsltImgName);
+    } else {
+        // apply extermum filtered kernel to blur image
+        //doConvolution(image, blurKernel, 7, true);
 //        smooth1(image, 7, true);
 
 
-        dest+=m3;
-        data+=m3;
-        (*(int*)dest) = (*(int*)data);
-        data+=3;
-        dest+=3;
+        dest += m3;
+        data += m3;
+        (*(int *) dest) = (*(int *) data);
+        data += 3;
+        dest += 3;
         for (i = until; i > 0; i--) {
             for (j = until; j > 0; j--) {
 
-                register char *dataBefore = data - m3, *dataAfter = data + m3;
+                register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
                 register int red = 0, green = 0, blue = 0;
 
                 register int r, g, b, sums;
 
-                r = ((unsigned char) *(dataBefore - 3));
-                g = ((unsigned char) *(dataBefore - 2));
-                b = ((unsigned char) *(dataBefore - 1));
+                r = *(dataBefore - 3);
+                g = *(dataBefore - 2);
+                b = *(dataBefore - 1);
                 red += r;
                 green += g;
                 blue += b;
@@ -1154,9 +261,9 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
                 register int maxR = r, maxG = g, maxB = b, minR = r, minG = g, minB = b;
                 register int max_intensity = sums, min_intensity = sums;
 
-                r = ((unsigned char) *dataBefore);
-                g = ((unsigned char) *(dataBefore + 1));
-                b = ((unsigned char) *(dataBefore + 2));
+                r = *dataBefore;
+                g = *(dataBefore + 1);
+                b = *(dataBefore + 2);
                 red += r;
                 green += g;
                 blue += b;
@@ -1174,70 +281,9 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
                     maxB = b;
                 }
 
-                r = ((unsigned char) *(dataBefore + 3));
-                g = ((unsigned char) *(dataBefore + 4));
-                b = ((unsigned char) *(dataBefore + 5));
-                red += r;
-                green += g;
-                blue += b;
-
-                sums = r + g + b;
-                if (sums <= min_intensity) {
-                    min_intensity = sums;
-                    minR = r;
-                    minG = g;
-                    minB = b;
-                } else if (sums > max_intensity) {
-                    max_intensity = sums;
-                    maxR = r;
-                    maxG = g;
-                    maxB = b;
-                }
-
-
-                r = ((unsigned char) *(data - 3));
-                g = ((unsigned char) *(data - 2));
-                b = ((unsigned char) *(data - 1));
-                red += r;
-                green += g;
-                blue += b;
-
-                sums = r + g + b;
-                if (sums <= min_intensity) {
-                    min_intensity = sums;
-                    minR = r;
-                    minG = g;
-                    minB = b;
-                } else if (sums > max_intensity) {
-                    max_intensity = sums;
-                    maxR = r;
-                    maxG = g;
-                    maxB = b;
-                }
-
-                r = ((unsigned char) *data);
-                g = ((unsigned char) *(data + 1));
-                b = ((unsigned char) *(data + 2));
-                red += r;
-                green += g;
-                blue += b;
-
-                sums = r + g + b;
-                if (sums <= min_intensity) {
-                    min_intensity = sums;
-                    minR = r;
-                    minG = g;
-                    minB = b;
-                } else if (sums > max_intensity) {
-                    max_intensity = sums;
-                    maxR = r;
-                    maxG = g;
-                    maxB = b;
-                }
-
-                r = ((unsigned char) *(data + 3));
-                g = ((unsigned char) *(data + 4));
-                b = ((unsigned char) *(data + 5));
+                r = *(dataBefore + 3);
+                g = *(dataBefore + 4);
+                b = *(dataBefore + 5);
                 red += r;
                 green += g;
                 blue += b;
@@ -1256,9 +302,9 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
                 }
 
 
-                r = ((unsigned char) *(dataAfter - 3));
-                g = ((unsigned char) *(dataAfter - 2));
-                b = ((unsigned char) *(dataAfter - 1));
+                r = *(data - 3);
+                g = *(data - 2);
+                b = *(data - 1);
                 red += r;
                 green += g;
                 blue += b;
@@ -1276,9 +322,9 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
                     maxB = b;
                 }
 
-                r = ((unsigned char) *dataAfter);
-                g = ((unsigned char) *(dataAfter + 1));
-                b = ((unsigned char) *(dataAfter + 2));
+                r = *data;
+                g = *(data + 1);
+                b = *(data + 2);
                 red += r;
                 green += g;
                 blue += b;
@@ -1296,9 +342,70 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
                     maxB = b;
                 }
 
-                r = ((unsigned char) *(dataAfter + 3));
-                g = ((unsigned char) *(dataAfter + 4));
-                b = ((unsigned char) *(dataAfter + 5));
+                r = *(data + 3);
+                g = *(data + 4);
+                b = *(data + 5);
+                red += r;
+                green += g;
+                blue += b;
+
+                sums = r + g + b;
+                if (sums <= min_intensity) {
+                    min_intensity = sums;
+                    minR = r;
+                    minG = g;
+                    minB = b;
+                } else if (sums > max_intensity) {
+                    max_intensity = sums;
+                    maxR = r;
+                    maxG = g;
+                    maxB = b;
+                }
+
+
+                r = *(dataAfter - 3);
+                g = *(dataAfter - 2);
+                b = *(dataAfter - 1);
+                red += r;
+                green += g;
+                blue += b;
+
+                sums = r + g + b;
+                if (sums <= min_intensity) {
+                    min_intensity = sums;
+                    minR = r;
+                    minG = g;
+                    minB = b;
+                } else if (sums > max_intensity) {
+                    max_intensity = sums;
+                    maxR = r;
+                    maxG = g;
+                    maxB = b;
+                }
+
+                r = *dataAfter;
+                g = *(dataAfter + 1);
+                b = *(dataAfter + 2);
+                red += r;
+                green += g;
+                blue += b;
+
+                sums = r + g + b;
+                if (sums <= min_intensity) {
+                    min_intensity = sums;
+                    minR = r;
+                    minG = g;
+                    minB = b;
+                } else if (sums > max_intensity) {
+                    max_intensity = sums;
+                    maxR = r;
+                    maxG = g;
+                    maxB = b;
+                }
+
+                r = *(dataAfter + 3);
+                g = *(dataAfter + 4);
+                b = *(dataAfter + 5);
                 red += r;
                 green += g;
                 blue += b;
@@ -1334,20 +441,20 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
                 // optimization- reduce call to max and min on the stack
                 //*******************************************************************
                 // truncate each pixel's color values to match the range [0,255]
-                register int maxi = (red > 0 ? red : 0);
-                (*dest) = (unsigned char) (maxi < 255 ? maxi : 255);
+                maxi = (red > 0 ? red : 0);
+                (*dest) = (maxi < 255 ? maxi : 255);
                 maxi = (green > 0 ? green : 0);
-                (*(dest + 1)) = (unsigned char) (maxi < 255 ? maxi : 255);
+                (*(dest + 1)) = (maxi < 255 ? maxi : 255);
                 maxi = (blue > 0 ? blue : 0);
-                (*(dest + 2)) = (unsigned char) (maxi < 255 ? maxi : 255);
+                (*(dest + 2)) = (maxi < 255 ? maxi : 255);
 
 
                 data += 3;
                 dest += 3;
             }
-            (*(long*)dest) = (*(long*)data);
-            data+=6;
-            dest+=6;
+            (*(long *) dest) = (*(long *) data);
+            data += 6;
+            dest += 6;
         }
         while (pages--) {
             *(src64++) = *(dst64++);
@@ -1369,111 +476,115 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
                 *(src1++) = *(dest1++);
         }
 
-		// write result image to file
-		writeBMP(image, srcImgpName, filteredBlurRsltImgName);
+        // write result image to file
+        writeBMPOpt(image, srcImgpName, filteredBlurRsltImgName);
 
-		// sharpen the resulting image
-		//doConvolution(image, sharpKernel, 1, false);
+        // sharpen the resulting image
+        //doConvolution(image, sharpKernel, 1, false);
 //        smooth2(image, 1, false);
+    }
 
-        dest = dest2;
-        dest1 = dest + m3;
-        data = image->data;
-        src1 = data + m3;
-        dest = dest1;
-        data = src1;
-        (*(int*)dest) = (*(int*)data);
-        data+=3;
-        dest+=3;
-        for (i = until; i > 0; i--) {
-            for (j = until; j > 0; j--) {
+    dest = dest2;
+    dest1 = dest + m3;
+    data = image->data;
+    src1 = data + m3;
+    dest = dest1;
+    data = src1;
+    (*(int *) dest) = (*(int *) data);
+    data += 3;
+    dest += 3;
+    for (i = until; i > 0; i--) {
+        for (j = until; j > 0; j--) {
 
-                register char *dataBefore = data - m3, *dataAfter = data + m3;
-                register int red = 0, green = 0, blue = 0;
+            register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
+            register int red = 0, green = 0, blue = 0;
 
-                red -= ((unsigned char) *(dataBefore - 3));
-                green -= ((unsigned char) *(dataBefore - 2));
-                blue -= ((unsigned char) *(dataBefore - 1));
+            red -= *(dataBefore - 3);
+            green -= *(dataBefore - 2);
+            blue -= *(dataBefore - 1);
 
-                red -= ((unsigned char) *dataBefore);
-                green -= ((unsigned char) *(dataBefore + 1));
-                blue -= ((unsigned char) *(dataBefore + 2));
+            red -= *dataBefore;
+            green -= *(dataBefore + 1);
+            blue -= *(dataBefore + 2);
 
-                red -= ((unsigned char) *(dataBefore + 3));
-                green -= ((unsigned char) *(dataBefore + 4));
-                blue -= ((unsigned char) *(dataBefore + 5));
-
-
-                red -= ((unsigned char) *(data - 3));
-                green -= ((unsigned char) *(data - 2));
-                blue -= ((unsigned char) *(data - 1));
-
-                red += ((unsigned char) *data) * 9;
-                green += ((unsigned char) *(data + 1)) * 9;
-                blue += ((unsigned char) *(data + 2)) * 9;
-
-                red -= ((unsigned char) *(data + 3));
-                green -= ((unsigned char) *(data + 4));
-                blue -= ((unsigned char) *(data + 5));
+            red -= *(dataBefore + 3);
+            green -= *(dataBefore + 4);
+            blue -= *(dataBefore + 5);
 
 
-                red -= ((unsigned char) *(dataAfter - 3));
-                green -= ((unsigned char) *(dataAfter - 2));
-                blue -= ((unsigned char) *(dataAfter - 1));
+            red -= *(data - 3);
+            green -= *(data - 2);
+            blue -= *(data - 1);
 
-                red -= ((unsigned char) *dataAfter);
-                green -= ((unsigned char) *(dataAfter + 1));
-                blue -= ((unsigned char) *(dataAfter + 2));
+            red += (*data) * 9;
+            green += (*(data + 1)) * 9;
+            blue += (*(data + 2)) * 9;
 
-                red -= ((unsigned char) *(dataAfter + 3));
-                green -= ((unsigned char) *(dataAfter + 4));
-                blue -= ((unsigned char) *(dataAfter + 5));
-
-                register int maxi = (red > 0 ? red : 0);
-                (*dest) = (unsigned char) (maxi < 255 ? maxi : 255);
-                maxi = (green > 0 ? green : 0);
-                (*(dest + 1)) = (unsigned char) (maxi < 255 ? maxi : 255);
-                maxi = (blue > 0 ? blue : 0);
-                (*(dest + 2)) = (unsigned char) (maxi < 255 ? maxi : 255);
+            red -= *(data + 3);
+            green -= *(data + 4);
+            blue -= *(data + 5);
 
 
-                data += 3;
-                dest += 3;
-            }
+            red -= *(dataAfter - 3);
+            green -= *(dataAfter - 2);
+            blue -= *(dataAfter - 1);
 
-            (*(long*)dest) = (*(long*)data);
-            data+=6;
-            dest+=6;
+            red -= *dataAfter;
+            green -= *(dataAfter + 1);
+            blue -= *(dataAfter + 2);
+
+            red -= *(dataAfter + 3);
+            green -= *(dataAfter + 4);
+            blue -= *(dataAfter + 5);
+
+            maxi = (red > 0 ? red : 0);
+            (*dest) = (maxi < 255 ? maxi : 255);
+            maxi = (green > 0 ? green : 0);
+            (*(dest + 1)) = (maxi < 255 ? maxi : 255);
+            maxi = (blue > 0 ? blue : 0);
+            (*(dest + 2)) = (maxi < 255 ? maxi : 255);
+
+
+            data += 3;
+            dest += 3;
         }
 
-        offset = size - aligned_size;
-        pages = words / 8;
-        offset2 = words - pages * 8;
-        src64 = (long *)src1;
-        dst64 = (long *)dest1;
-        while (pages--) {
-            *(src64++) = *(dst64++);
-            *(src64++) = *(dst64++);
-            *(src64++) = *(dst64++);
-            *(src64++) = *(dst64++);
-            *(src64++) = *(dst64++);
-            *(src64++) = *(dst64++);
-            *(src64++) = *(dst64++);
-            *(src64++) = *(dst64++);
-        }
-        while (offset2--)
-            *(src64++) = *(dst64++);
+        (*(long *) dest) = (*(long *) data);
+        data += 6;
+        dest += 6;
+    }
 
-        if (offset) {
-            src1 = &src1[aligned_size];
-            dest1 = &dest1[aligned_size];
-            while (offset--)
-                *(src1++) = *(dest1++);
-        }
+    offset = size - aligned_size;
+    pages = words / 8;
+    offset2 = words - pages * 8;
+    src64 = (long *) src1;
+    dst64 = (long *) dest1;
+    while (pages--) {
+        *(src64++) = *(dst64++);
+        *(src64++) = *(dst64++);
+        *(src64++) = *(dst64++);
+        *(src64++) = *(dst64++);
+        *(src64++) = *(dst64++);
+        *(src64++) = *(dst64++);
+        *(src64++) = *(dst64++);
+        *(src64++) = *(dst64++);
+    }
+    while (offset2--)
+        *(src64++) = *(dst64++);
 
-		// write result image to file
-		writeBMP(image, srcImgpName, filteredSharpRsltImgName);	
-	}
+    if (offset) {
+        src1 = &src1[aligned_size];
+        dest1 = &dest1[aligned_size];
+        while (offset--)
+            *(src1++) = *(dest1++);
+    }
+
+    // write result image to file
+    if (flag == '1') {
+        writeBMPOpt(image, srcImgpName, sharpRsltImgName);
+    } else {
+        writeBMPOpt(image, srcImgpName, filteredSharpRsltImgName);
+    }
     free(dest2);
 }
 
