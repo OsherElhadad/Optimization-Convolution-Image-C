@@ -155,7 +155,7 @@
 
 void apply1(unsigned char * data1, unsigned char * dest1) {
     register unsigned char *data = data1, *dest = dest1;
-    register int m3 = 3 * m;
+    register int m3 = m + (m << 1);
     register int i, j, until = m - 2, until2 = until - 1;
     (*(int *) dest) = (*(int *) data);
     data += 3;
@@ -221,10 +221,12 @@ void apply1(unsigned char * data1, unsigned char * dest1) {
 
         data += 3;
         dest += 3;
+        dataBefore += 3;
+        dataAfter += 3;
         for (j = until2; j > 0; j--) {
 
-            dataBefore = data - m3 + 3;
-            dataAfter = data + m3 + 3;
+            dataBefore += 3;
+            dataAfter += 3;
             redL = redM;
             redM = redR;
             greenL = greenM;
@@ -271,15 +273,15 @@ void apply1(unsigned char * data1, unsigned char * dest1) {
 
 void apply2(unsigned char * data1, unsigned char * dest1) {
     register unsigned char *data = data1, *dest = dest1;
-    register int m3 = 3 * m;
+    register int m3 = m + (m << 1);
     register int i, j, until = m - 2;
     (*(int *) dest) = (*(int *) data);
     data += 3;
     dest += 3;
+    register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
     for (i = until; i > 0; i--) {
         for (j = until; j > 0; j--) {
 
-            register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
             register int red = 0, green = 0, blue = 0;
             register int r, g, b, sums;
 
@@ -484,16 +486,20 @@ void apply2(unsigned char * data1, unsigned char * dest1) {
 
             data += 3;
             dest += 3;
+            dataBefore += 3;
+            dataAfter += 3;
         }
         (*(long *) dest) = (*(long *) data);
         data += 6;
         dest += 6;
+        dataBefore += 6;
+        dataAfter += 6;
     }
 }
 
 void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sharpRsltImgName, char* filteredBlurRsltImgName, char* filteredSharpRsltImgName, char flag) {
 
-    register int m3 = 3 * m, mn3 = m3 * n;
+    register int m3 = m + (m << 1), mn3 = m3 * n;
     register unsigned char *dest = (unsigned char *) malloc(mn3);
     register unsigned char *data = (unsigned char *) image->data, *src1 = data, *dest1 = dest;
     image->data = (char *)dest1;
@@ -646,10 +652,12 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
 
         data += 3;
         dest += 3;
+        dataBefore += 3;
+        dataAfter += 3;
         for (j = until2; j > 0; j--) {
 
-            dataBefore = data - m3 + 3;
-            dataAfter = data + m3 + 3;
+            dataBefore += 3;
+            dataAfter += 3;
             redL = redM + red9;
             redM = redR;
             greenL = greenM + green9;
