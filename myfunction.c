@@ -153,9 +153,9 @@ void writeBMPOpt(Image *image, const char* originalImgFileName, const char* file
 //    return NULL;
 //}
 
-void apply1(unsigned char * data1, unsigned char * dest1) {
+void apply1(unsigned char * data1, unsigned char * dest1, int mm3) {
     register unsigned char *data = data1, *dest = dest1;
-    register int m3 = m + (m << 1);
+    register int m3 = mm3;
     register int i, j, until = m - 2, until2 = until - 1;
     (*(int *) dest) = (*(int *) data);
     data += 3;
@@ -271,10 +271,13 @@ void apply1(unsigned char * data1, unsigned char * dest1) {
     }
 }
 
-void apply2(unsigned char * data1, unsigned char * dest1) {
+void apply2(unsigned char * data1, unsigned char * dest1, int mm3) {
     register unsigned char *data = data1, *dest = dest1;
-    register int m3 = m + (m << 1);
+    register int m3 = mm3;
     register int i, j, until = m - 2;
+    register int red, green, blue;
+    register int r, g, b, sums;
+    register int max_intensity, min_intensity;
     (*(int *) dest) = (*(int *) data);
     data += 3;
     dest += 3;
@@ -282,19 +285,17 @@ void apply2(unsigned char * data1, unsigned char * dest1) {
     for (i = until; i > 0; i--) {
         for (j = until; j > 0; j--) {
 
-            register int red = 0, green = 0, blue = 0;
-            register int r, g, b, sums;
-
             r = *(dataBefore - 3);
             g = *(dataBefore - 2);
             b = *(dataBefore - 1);
-            red += r;
-            green += g;
-            blue += b;
+            red = r;
+            green = g;
+            blue = b;
 
             sums = r + g + b;
             register int maxR = r, maxG = g, maxB = b, minR = r, minG = g, minB = b;
-            register int max_intensity = sums, min_intensity = sums;
+            max_intensity = sums;
+            min_intensity = sums;
 
             r = *dataBefore;
             g = *(dataBefore + 1);
@@ -531,12 +532,12 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
         // blur image
         //doConvolution(image, blurKernel, 9, false);
         //smooth1(image, 9, false);
-        apply1(data, dest);
+        apply1(data, dest, m3);
     } else {
         // apply extermum filtered kernel to blur image
         //doConvolution(image, blurKernel, 7, true);
 //        smooth1(image, 7, true);
-        apply2(data, dest);
+        apply2(data, dest, m3);
     }
 
     offset = size - aligned_size;
