@@ -9,80 +9,80 @@
 //#include <unistd.h>
 //#include <pthread.h>
 
-void writeBMPOpt(Image *image, const char* originalImgFileName, const char* fileName) {
-
-    // open the file to be written
-    FILE * bmpfile;
-    bmpfile = fopen(fileName, "wb");
-    if (NULL == bmpfile) {
-        printf("Error opening output file\n");
-        // close all open files and free any allocated memory
-        exit (1);
-    }
-
-    // open BMP file of original image
-    FILE * srcFile;
-    if ((srcFile = fopen(originalImgFileName, "rb")) == NULL) {
-        printf("File Not Found : %s\n", originalImgFileName);
-        exit (1);
-    }
-
-    // read header of original image
-    char originalHeader[54];
-    fread(&originalHeader, 1, 54, srcFile);
-
-    // write the BMP file header
-    fwrite(&originalHeader, 1, 54, bmpfile);
-
-    // close BMP file of original image
-    fclose(srcFile);
-
-    // calculate number of bytes per each line
-    register int bytesPerLine = m * 3;  // for 24 bit images
-    // round up to a dword boundary
-    if (bytesPerLine & 0x0003) {
-        bytesPerLine |= 0x0003;
-        ++bytesPerLine;
-    }
-
-    // allocate buffer to hold one line of the image
-    char *linebuf;
-    linebuf = (char *) calloc(1, bytesPerLine);
-    if (linebuf == NULL) {
-        printf ("Error allocating memory\n");
-        // close all open files and free any allocated memory
-        exit (1);
-    }
-
-    // write the image line by line - start with the lowest line
-    register int i, line = m;
-    register char* iData = image->data, *ilinebuf;
-    for (; line >= 0; --line) {
-
-        ilinebuf = linebuf;
-        /*
-        * fill line linebuf with the image data for that line
-        * remember that the order is BGR
-        */
-        for (i = bytesPerLine; i > 0 ; i -= 3) {
-
-            *(ilinebuf++) = *(iData + 2);
-            *(ilinebuf++) = *(iData + 1);
-            *(ilinebuf++) = *iData;
-
-            iData+=3;
-        }
-
-        /*
-        * remember that the order is BGR and if width is not a multiple
-        * of 4 then the last few bytes may be unused
-        */
-        fwrite(linebuf, 1, bytesPerLine, bmpfile);
-    }
-
-    // close the image file
-    fclose(bmpfile);
-}
+//void writeBMPOpt(Image *image, const char* originalImgFileName, const char* fileName) {
+//
+//    // open the file to be written
+//    FILE * bmpfile;
+//    bmpfile = fopen(fileName, "wb");
+//    if (NULL == bmpfile) {
+//        printf("Error opening output file\n");
+//        // close all open files and free any allocated memory
+//        exit (1);
+//    }
+//
+//    // open BMP file of original image
+//    FILE * srcFile;
+//    if ((srcFile = fopen(originalImgFileName, "rb")) == NULL) {
+//        printf("File Not Found : %s\n", originalImgFileName);
+//        exit (1);
+//    }
+//
+//    // read header of original image
+//    char originalHeader[54];
+//    fread(&originalHeader, 1, 54, srcFile);
+//
+//    // write the BMP file header
+//    fwrite(&originalHeader, 1, 54, bmpfile);
+//
+//    // close BMP file of original image
+//    fclose(srcFile);
+//
+//    // calculate number of bytes per each line
+//    register int bytesPerLine = m * 3;  // for 24 bit images
+//    // round up to a dword boundary
+//    if (bytesPerLine & 0x0003) {
+//        bytesPerLine |= 0x0003;
+//        ++bytesPerLine;
+//    }
+//
+//    // allocate buffer to hold one line of the image
+//    char *linebuf;
+//    linebuf = (char *) calloc(1, bytesPerLine);
+//    if (linebuf == NULL) {
+//        printf ("Error allocating memory\n");
+//        // close all open files and free any allocated memory
+//        exit (1);
+//    }
+//
+//    // write the image line by line - start with the lowest line
+//    register int i, line = m;
+//    register char* iData = image->data, *ilinebuf;
+//    for (; line >= 0; --line) {
+//
+//        ilinebuf = linebuf;
+//        /*
+//        * fill line linebuf with the image data for that line
+//        * remember that the order is BGR
+//        */
+//        for (i = bytesPerLine; i > 0 ; i -= 3) {
+//
+//            *(ilinebuf++) = *(iData + 2);
+//            *(ilinebuf++) = *(iData + 1);
+//            *(ilinebuf++) = *iData;
+//
+//            iData+=3;
+//        }
+//
+//        /*
+//        * remember that the order is BGR and if width is not a multiple
+//        * of 4 then the last few bytes may be unused
+//        */
+//        fwrite(linebuf, 1, bytesPerLine, bmpfile);
+//    }
+//
+//    // close the image file
+//    fclose(bmpfile);
+//}
 //
 //
 //void writeBMPOptMemMap(Image *image, const char* originalImgFileName, const char* fileName) {
@@ -274,7 +274,7 @@ void apply1(unsigned char * data1, unsigned char * dest1, int mm3) {
 void apply2(unsigned char * data1, unsigned char * dest1, int mm3) {
     register unsigned char *data = data1, *dest = dest1;
     register int m3 = mm3;
-    register int i, j, until = m - 2;
+    register int i, j, until = m - 2, until2 = until - 1;;
     register int red, green, blue;
     register int r, g, b, sums;
     register int max_intensity, min_intensity;
@@ -283,7 +283,213 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3) {
     dest += 3;
     register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
     for (i = until; i > 0; i--) {
-        for (j = until; j > 0; j--) {
+
+        r = *(dataBefore - 3);
+        g = *(dataBefore - 2);
+        b = *(dataBefore - 1);
+        red = r;
+        green = g;
+        blue = b;
+
+        sums = r + g + b;
+        register int maxR = r, maxG = g, maxB = b, minR = r, minG = g, minB = b;
+        max_intensity = sums;
+        min_intensity = sums;
+
+        r = *dataBefore;
+        g = *(dataBefore + 1);
+        b = *(dataBefore + 2);
+        red += r;
+        green += g;
+        blue += b;
+
+        sums = r + g + b;
+        if (sums <= min_intensity) {
+            min_intensity = sums;
+            minR = r;
+            minG = g;
+            minB = b;
+        } else if (sums > max_intensity) {
+            max_intensity = sums;
+            maxR = r;
+            maxG = g;
+            maxB = b;
+        }
+
+        r = *(dataBefore + 3);
+        g = *(dataBefore + 4);
+        b = *(dataBefore + 5);
+        red += r;
+        green += g;
+        blue += b;
+
+        sums = r + g + b;
+        if (sums <= min_intensity) {
+            min_intensity = sums;
+            minR = r;
+            minG = g;
+            minB = b;
+        } else if (sums > max_intensity) {
+            max_intensity = sums;
+            maxR = r;
+            maxG = g;
+            maxB = b;
+        }
+
+
+        r = *(data - 3);
+        g = *(data - 2);
+        b = *(data - 1);
+        red += r;
+        green += g;
+        blue += b;
+
+        sums = r + g + b;
+        if (sums <= min_intensity) {
+            min_intensity = sums;
+            minR = r;
+            minG = g;
+            minB = b;
+        } else if (sums > max_intensity) {
+            max_intensity = sums;
+            maxR = r;
+            maxG = g;
+            maxB = b;
+        }
+
+        r = *data;
+        g = *(data + 1);
+        b = *(data + 2);
+        red += r;
+        green += g;
+        blue += b;
+
+        sums = r + g + b;
+        if (sums <= min_intensity) {
+            min_intensity = sums;
+            minR = r;
+            minG = g;
+            minB = b;
+        } else if (sums > max_intensity) {
+            max_intensity = sums;
+            maxR = r;
+            maxG = g;
+            maxB = b;
+        }
+
+        r = *(data + 3);
+        g = *(data + 4);
+        b = *(data + 5);
+        red += r;
+        green += g;
+        blue += b;
+
+        sums = r + g + b;
+        if (sums <= min_intensity) {
+            min_intensity = sums;
+            minR = r;
+            minG = g;
+            minB = b;
+        } else if (sums > max_intensity) {
+            max_intensity = sums;
+            maxR = r;
+            maxG = g;
+            maxB = b;
+        }
+
+
+        r = *(dataAfter - 3);
+        g = *(dataAfter - 2);
+        b = *(dataAfter - 1);
+        red += r;
+        green += g;
+        blue += b;
+
+        sums = r + g + b;
+        if (sums <= min_intensity) {
+            min_intensity = sums;
+            minR = r;
+            minG = g;
+            minB = b;
+        } else if (sums > max_intensity) {
+            max_intensity = sums;
+            maxR = r;
+            maxG = g;
+            maxB = b;
+        }
+
+        r = *dataAfter;
+        g = *(dataAfter + 1);
+        b = *(dataAfter + 2);
+        red += r;
+        green += g;
+        blue += b;
+
+        sums = r + g + b;
+        if (sums <= min_intensity) {
+            min_intensity = sums;
+            minR = r;
+            minG = g;
+            minB = b;
+        } else if (sums > max_intensity) {
+            max_intensity = sums;
+            maxR = r;
+            maxG = g;
+            maxB = b;
+        }
+
+        r = *(dataAfter + 3);
+        g = *(dataAfter + 4);
+        b = *(dataAfter + 5);
+        red += r;
+        green += g;
+        blue += b;
+
+        sums = r + g + b;
+        if (sums <= min_intensity) {
+            min_intensity = sums;
+            minR = r;
+            minG = g;
+            minB = b;
+        } else if (sums > max_intensity) {
+            max_intensity = sums;
+            maxR = r;
+            maxG = g;
+            maxB = b;
+        }
+
+
+        red -= minR;
+        red -= maxR;
+        green -= minG;
+        green -= maxG;
+        blue -= minB;
+        blue -= maxB;
+
+
+        // divide by kernel's weight
+        red = red / 7;
+        green = green / 7;
+        blue = blue / 7;
+
+        //*******************************************************************
+        // optimization- reduce call to max and min on the stack
+        //*******************************************************************
+        // truncate each pixel's color values to match the range [0,255]
+        register int maxi = (red > 0 ? red : 0);
+        (*dest) = (maxi < 255 ? maxi : 255);
+        maxi = (green > 0 ? green : 0);
+        (*(dest + 1)) = (maxi < 255 ? maxi : 255);
+        maxi = (blue > 0 ? blue : 0);
+        (*(dest + 2)) = (maxi < 255 ? maxi : 255);
+
+
+        data += 3;
+        dest += 3;
+        dataBefore += 3;
+        dataAfter += 3;
+
+        for (j = until2; j > 0; j--) {
 
             r = *(dataBefore - 3);
             g = *(dataBefore - 2);
@@ -293,7 +499,12 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3) {
             blue = b;
 
             sums = r + g + b;
-            register int maxR = r, maxG = g, maxB = b, minR = r, minG = g, minB = b;
+            maxR = r;
+            maxG = g;
+            maxB = b;
+            minR = r;
+            minG = g;
+            minB = b;
             max_intensity = sums;
             min_intensity = sums;
 
@@ -569,12 +780,12 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
 
     if(flag == '1') {
         // write result image to file
-//        writeBMP(image, srcImgpName, blurRsltImgName);
-        writeBMPOpt(image, srcImgpName, blurRsltImgName);
+        writeBMP(image, srcImgpName, blurRsltImgName);
+//        writeBMPOpt(image, srcImgpName, blurRsltImgName);
     } else {
         // write result image to file
-//        writeBMP(image, srcImgpName, filteredBlurRsltImgName);
-        writeBMPOpt(image, srcImgpName, filteredBlurRsltImgName);
+        writeBMP(image, srcImgpName, filteredBlurRsltImgName);
+//        writeBMPOpt(image, srcImgpName, filteredBlurRsltImgName);
     }
 
 //    f = flag;
@@ -711,11 +922,11 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
 
     // write result image to file
     if (flag == '1') {
-//        writeBMP(image, srcImgpName, sharpRsltImgName);
-        writeBMPOpt(image, srcImgpName, sharpRsltImgName);
+        writeBMP(image, srcImgpName, sharpRsltImgName);
+//        writeBMPOpt(image, srcImgpName, sharpRsltImgName);
     } else {
-//        writeBMP(image, srcImgpName, filteredSharpRsltImgName);
-        writeBMPOpt(image, srcImgpName, filteredSharpRsltImgName);
+        writeBMP(image, srcImgpName, filteredSharpRsltImgName);
+//        writeBMPOpt(image, srcImgpName, filteredSharpRsltImgName);
     }
     free(dest1);
 }
