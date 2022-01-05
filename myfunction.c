@@ -161,22 +161,21 @@ void apply1(unsigned char * data1, unsigned char * dest1, int mm3) {
     data += 3;
     dest += 3;
     for (i = until; i > 0; i--) {
-        register int red = 0, green = 0, blue = 0;
+        register int red, green, blue;
         register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
-        register int redL = 0, greenL = 0, blueL = 0, redM = 0, greenM = 0, blueM = 0, redR = 0, greenR = 0, blueR = 0;
+        register int redL, greenL, blueL, redM, greenM, blueM, redR, greenR, blueR;
 
+        redL = *(dataBefore - 3);
+        greenL = *(dataBefore - 2);
+        blueL = *(dataBefore - 1);
 
-        redL += *(dataBefore - 3);
-        greenL += *(dataBefore - 2);
-        blueL += *(dataBefore - 1);
+        redM = *dataBefore;
+        greenM = *(dataBefore + 1);
+        blueM = *(dataBefore + 2);
 
-        redM += *dataBefore;
-        greenM += *(dataBefore + 1);
-        blueM += *(dataBefore + 2);
-
-        redR += *(dataBefore + 3);
-        greenR += *(dataBefore + 4);
-        blueR += *(dataBefore + 5);
+        redR = *(dataBefore + 3);
+        greenR = *(dataBefore + 4);
+        blueR = *(dataBefore + 5);
 
 
         redL += *(data - 3);
@@ -211,12 +210,9 @@ void apply1(unsigned char * data1, unsigned char * dest1, int mm3) {
         blue = (blueL + blueM + blueR) / 9;
 
 
-        register int maxi = (red > 0 ? red : 0);
-        (*dest) = (maxi < 255 ? maxi : 255);
-        maxi = (green > 0 ? green : 0);
-        (*(dest + 1)) = (maxi < 255 ? maxi : 255);
-        maxi = (blue > 0 ? blue : 0);
-        (*(dest + 2)) = (maxi < 255 ? maxi : 255);
+        (*dest) = (red < 255 ? red : 255);
+        (*(dest + 1)) = (green < 255 ? green : 255);
+        (*(dest + 2)) = (blue < 255 ? blue : 255);
 
 
         data += 3;
@@ -253,12 +249,9 @@ void apply1(unsigned char * data1, unsigned char * dest1, int mm3) {
             blue = (blueL + blueM + blueR) / 9;
 
 
-            maxi = (red > 0 ? red : 0);
-            (*dest) = (maxi < 255 ? maxi : 255);
-            maxi = (green > 0 ? green : 0);
-            (*(dest + 1)) = (maxi < 255 ? maxi : 255);
-            maxi = (blue > 0 ? blue : 0);
-            (*(dest + 2)) = (maxi < 255 ? maxi : 255);
+            (*dest) = (red < 255 ? red : 255);
+            (*(dest + 1)) = (green < 255 ? green : 255);
+            (*(dest + 2)) = (blue < 255 ? blue : 255);
 
 
             data += 3;
@@ -808,34 +801,34 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
     register int i, j, until = m - 2, until2 = until - 1;
     for (i = until; i > 0; i--) {
         register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
-        register int red = 0, green = 0, blue = 0, red9 = 0, green9 = 0, blue9 = 0, red9R = 0, green9R = 0, blue9R = 0;
-        register int redL = 0, greenL = 0, blueL = 0, redM = 0, greenM = 0, blueM = 0, redR = 0, greenR = 0, blueR = 0;
+        register int red, green, blue , red9, green9, blue9, red9R, green9R, blue9R;
+        register int redL, greenL, blueL, redM, greenM, blueM, redR, greenR, blueR;
 
 
-        redL -= *(dataBefore - 3);
-        greenL -= *(dataBefore - 2);
-        blueL -= *(dataBefore - 1);
+        redL = -*(dataBefore - 3);
+        greenL = -*(dataBefore - 2);
+        blueL = -*(dataBefore - 1);
 
-        redM -= *dataBefore;
-        greenM -= *(dataBefore + 1);
-        blueM -= *(dataBefore + 2);
+        redM = -*dataBefore;
+        greenM = -*(dataBefore + 1);
+        blueM = -*(dataBefore + 2);
 
-        redR -= *(dataBefore + 3);
-        greenR -= *(dataBefore + 4);
-        blueR -= *(dataBefore + 5);
+        redR = -*(dataBefore + 3);
+        greenR = -*(dataBefore + 4);
+        blueR = -*(dataBefore + 5);
 
 
         redL -= *(data - 3);
         greenL -= *(data - 2);
         blueL -= *(data - 1);
 
-        red9 -= (*data);
-        green9 -= *(data + 1);
-        blue9 -= *(data + 2);
+        red9 = -(*data);
+        green9 = -*(data + 1);
+        blue9 = -*(data + 2);
 
-        red9R -= *(data + 3);
-        green9R -= *(data + 4);
-        blue9R -= *(data + 5);
+        red9R = -*(data + 3);
+        green9R = -*(data + 4);
+        blue9R = -*(data + 5);
 
 
         redL -= *(dataAfter - 3);
