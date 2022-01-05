@@ -153,17 +153,17 @@
 //    return NULL;
 //}
 
-void apply1(unsigned char * data1, unsigned char * dest1, int mm3) {
+void apply1(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
     register unsigned char *data = data1, *dest = dest1;
     register int m3 = mm3;
-    register int i, j, until = m - 2, until2 = until - 1;
+    register int_fast16_t i, j, until = mm - 2, until2 = until - 1;
     (*(int *) dest) = (*(int *) data);
     data += 3;
     dest += 3;
     for (i = until; i > 0; i--) {
-        register int red, green, blue;
+        register int_fast16_t red, green, blue;
         register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
-        register int redL, greenL, blueL, redM, greenM, blueM, redR, greenR, blueR;
+        register int_fast16_t redL, greenL, blueL, redM, greenM, blueM, redR, greenR, blueR;
 
         redL = *(dataBefore - 3);
         greenL = *(dataBefore - 2);
@@ -264,13 +264,13 @@ void apply1(unsigned char * data1, unsigned char * dest1, int mm3) {
     }
 }
 
-void apply2(unsigned char * data1, unsigned char * dest1, int mm3) {
+void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
     register unsigned char *data = data1, *dest = dest1;
     register int m3 = mm3;
-    register int i, j, until = m - 2, until2 = until - 1;;
-    register int red, green, blue;
-    register int r, g, b, sums;
-    register int max_intensity, min_intensity;
+    register int_fast16_t i, j, until = mm - 2, until2 = (until - 1) / 2, until22 = (until - 1) % 2;
+    register int_fast16_t red, green, blue;
+    register int_fast16_t r, g, b, sums;
+    register int_fast16_t max_intensity, min_intensity;
     (*(int *) dest) = (*(int *) data);
     data += 3;
     dest += 3;
@@ -285,7 +285,7 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3) {
         blue = b;
 
         sums = r + g + b;
-        register int maxR = r, maxG = g, maxB = b, minR = r, minG = g, minB = b;
+        register int_fast16_t maxR = r, maxG = g, maxB = b, minR = r, minG = g, minB = b;
         max_intensity = sums;
         min_intensity = sums;
 
@@ -469,7 +469,7 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3) {
         // optimization- reduce call to max and min on the stack
         //*******************************************************************
         // truncate each pixel's color values to match the range [0,255]
-        register int maxi = (red > 0 ? red : 0);
+        register int_fast16_t maxi = (red > 0 ? red : 0);
         (*dest) = (maxi < 255 ? maxi : 255);
         maxi = (green > 0 ? green : 0);
         (*(dest + 1)) = (maxi < 255 ? maxi : 255);
@@ -681,7 +681,223 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3) {
             // optimization- reduce call to max and min on the stack
             //*******************************************************************
             // truncate each pixel's color values to match the range [0,255]
-            register int maxi = (red > 0 ? red : 0);
+            maxi = (red > 0 ? red : 0);
+            (*dest) = (maxi < 255 ? maxi : 255);
+            maxi = (green > 0 ? green : 0);
+            (*(dest + 1)) = (maxi < 255 ? maxi : 255);
+            maxi = (blue > 0 ? blue : 0);
+            (*(dest + 2)) = (maxi < 255 ? maxi : 255);
+
+
+            data += 3;
+            dest += 3;
+            dataBefore += 3;
+            dataAfter += 3;
+
+
+
+
+
+
+
+            r = *(dataBefore - 3);
+            g = *(dataBefore - 2);
+            b = *(dataBefore - 1);
+            red = r;
+            green = g;
+            blue = b;
+
+            sums = r + g + b;
+            maxR = r;
+            maxG = g;
+            maxB = b;
+            minR = r;
+            minG = g;
+            minB = b;
+            max_intensity = sums;
+            min_intensity = sums;
+
+            r = *dataBefore;
+            g = *(dataBefore + 1);
+            b = *(dataBefore + 2);
+            red += r;
+            green += g;
+            blue += b;
+
+            sums = r + g + b;
+            if (sums <= min_intensity) {
+                min_intensity = sums;
+                minR = r;
+                minG = g;
+                minB = b;
+            } else if (sums > max_intensity) {
+                max_intensity = sums;
+                maxR = r;
+                maxG = g;
+                maxB = b;
+            }
+
+            r = *(dataBefore + 3);
+            g = *(dataBefore + 4);
+            b = *(dataBefore + 5);
+            red += r;
+            green += g;
+            blue += b;
+
+            sums = r + g + b;
+            if (sums <= min_intensity) {
+                min_intensity = sums;
+                minR = r;
+                minG = g;
+                minB = b;
+            } else if (sums > max_intensity) {
+                max_intensity = sums;
+                maxR = r;
+                maxG = g;
+                maxB = b;
+            }
+
+
+            r = *(data - 3);
+            g = *(data - 2);
+            b = *(data - 1);
+            red += r;
+            green += g;
+            blue += b;
+
+            sums = r + g + b;
+            if (sums <= min_intensity) {
+                min_intensity = sums;
+                minR = r;
+                minG = g;
+                minB = b;
+            } else if (sums > max_intensity) {
+                max_intensity = sums;
+                maxR = r;
+                maxG = g;
+                maxB = b;
+            }
+
+            r = *data;
+            g = *(data + 1);
+            b = *(data + 2);
+            red += r;
+            green += g;
+            blue += b;
+
+            sums = r + g + b;
+            if (sums <= min_intensity) {
+                min_intensity = sums;
+                minR = r;
+                minG = g;
+                minB = b;
+            } else if (sums > max_intensity) {
+                max_intensity = sums;
+                maxR = r;
+                maxG = g;
+                maxB = b;
+            }
+
+            r = *(data + 3);
+            g = *(data + 4);
+            b = *(data + 5);
+            red += r;
+            green += g;
+            blue += b;
+
+            sums = r + g + b;
+            if (sums <= min_intensity) {
+                min_intensity = sums;
+                minR = r;
+                minG = g;
+                minB = b;
+            } else if (sums > max_intensity) {
+                max_intensity = sums;
+                maxR = r;
+                maxG = g;
+                maxB = b;
+            }
+
+
+            r = *(dataAfter - 3);
+            g = *(dataAfter - 2);
+            b = *(dataAfter - 1);
+            red += r;
+            green += g;
+            blue += b;
+
+            sums = r + g + b;
+            if (sums <= min_intensity) {
+                min_intensity = sums;
+                minR = r;
+                minG = g;
+                minB = b;
+            } else if (sums > max_intensity) {
+                max_intensity = sums;
+                maxR = r;
+                maxG = g;
+                maxB = b;
+            }
+
+            r = *dataAfter;
+            g = *(dataAfter + 1);
+            b = *(dataAfter + 2);
+            red += r;
+            green += g;
+            blue += b;
+
+            sums = r + g + b;
+            if (sums <= min_intensity) {
+                min_intensity = sums;
+                minR = r;
+                minG = g;
+                minB = b;
+            } else if (sums > max_intensity) {
+                max_intensity = sums;
+                maxR = r;
+                maxG = g;
+                maxB = b;
+            }
+
+            r = *(dataAfter + 3);
+            g = *(dataAfter + 4);
+            b = *(dataAfter + 5);
+            red += r;
+            green += g;
+            blue += b;
+
+            sums = r + g + b;
+            if (sums <= min_intensity) {
+                min_intensity = sums;
+                minR = r;
+                minG = g;
+                minB = b;
+            } else if (sums > max_intensity) {
+                max_intensity = sums;
+                maxR = r;
+                maxG = g;
+                maxB = b;
+            }
+
+
+            red -= minR;
+            red -= maxR;
+            green -= minG;
+            green -= maxG;
+            blue -= minB;
+            blue -= maxB;
+
+
+            // divide by kernel's weight
+            red = red / 7;
+            green = green / 7;
+            blue = blue / 7;
+
+            //*******************************************************************
+            // optimization- reduce call to max and min on the stack
+            //*******************************************************************
+            // truncate each pixel's color values to match the range [0,255]
+            maxi = (red > 0 ? red : 0);
             (*dest) = (maxi < 255 ? maxi : 255);
             maxi = (green > 0 ? green : 0);
             (*(dest + 1)) = (maxi < 255 ? maxi : 255);
@@ -694,6 +910,225 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3) {
             dataBefore += 3;
             dataAfter += 3;
         }
+
+
+
+
+        for (j = until22; j > 0; j--) {
+
+            r = *(dataBefore - 3);
+            g = *(dataBefore - 2);
+            b = *(dataBefore - 1);
+            red = r;
+            green = g;
+            blue = b;
+
+            sums = r + g + b;
+            maxR = r;
+            maxG = g;
+            maxB = b;
+            minR = r;
+            minG = g;
+            minB = b;
+            max_intensity = sums;
+            min_intensity = sums;
+
+            r = *dataBefore;
+            g = *(dataBefore + 1);
+            b = *(dataBefore + 2);
+            red += r;
+            green += g;
+            blue += b;
+
+            sums = r + g + b;
+            if (sums <= min_intensity) {
+                min_intensity = sums;
+                minR = r;
+                minG = g;
+                minB = b;
+            } else if (sums > max_intensity) {
+                max_intensity = sums;
+                maxR = r;
+                maxG = g;
+                maxB = b;
+            }
+
+            r = *(dataBefore + 3);
+            g = *(dataBefore + 4);
+            b = *(dataBefore + 5);
+            red += r;
+            green += g;
+            blue += b;
+
+            sums = r + g + b;
+            if (sums <= min_intensity) {
+                min_intensity = sums;
+                minR = r;
+                minG = g;
+                minB = b;
+            } else if (sums > max_intensity) {
+                max_intensity = sums;
+                maxR = r;
+                maxG = g;
+                maxB = b;
+            }
+
+
+            r = *(data - 3);
+            g = *(data - 2);
+            b = *(data - 1);
+            red += r;
+            green += g;
+            blue += b;
+
+            sums = r + g + b;
+            if (sums <= min_intensity) {
+                min_intensity = sums;
+                minR = r;
+                minG = g;
+                minB = b;
+            } else if (sums > max_intensity) {
+                max_intensity = sums;
+                maxR = r;
+                maxG = g;
+                maxB = b;
+            }
+
+            r = *data;
+            g = *(data + 1);
+            b = *(data + 2);
+            red += r;
+            green += g;
+            blue += b;
+
+            sums = r + g + b;
+            if (sums <= min_intensity) {
+                min_intensity = sums;
+                minR = r;
+                minG = g;
+                minB = b;
+            } else if (sums > max_intensity) {
+                max_intensity = sums;
+                maxR = r;
+                maxG = g;
+                maxB = b;
+            }
+
+            r = *(data + 3);
+            g = *(data + 4);
+            b = *(data + 5);
+            red += r;
+            green += g;
+            blue += b;
+
+            sums = r + g + b;
+            if (sums <= min_intensity) {
+                min_intensity = sums;
+                minR = r;
+                minG = g;
+                minB = b;
+            } else if (sums > max_intensity) {
+                max_intensity = sums;
+                maxR = r;
+                maxG = g;
+                maxB = b;
+            }
+
+
+            r = *(dataAfter - 3);
+            g = *(dataAfter - 2);
+            b = *(dataAfter - 1);
+            red += r;
+            green += g;
+            blue += b;
+
+            sums = r + g + b;
+            if (sums <= min_intensity) {
+                min_intensity = sums;
+                minR = r;
+                minG = g;
+                minB = b;
+            } else if (sums > max_intensity) {
+                max_intensity = sums;
+                maxR = r;
+                maxG = g;
+                maxB = b;
+            }
+
+            r = *dataAfter;
+            g = *(dataAfter + 1);
+            b = *(dataAfter + 2);
+            red += r;
+            green += g;
+            blue += b;
+
+            sums = r + g + b;
+            if (sums <= min_intensity) {
+                min_intensity = sums;
+                minR = r;
+                minG = g;
+                minB = b;
+            } else if (sums > max_intensity) {
+                max_intensity = sums;
+                maxR = r;
+                maxG = g;
+                maxB = b;
+            }
+
+            r = *(dataAfter + 3);
+            g = *(dataAfter + 4);
+            b = *(dataAfter + 5);
+            red += r;
+            green += g;
+            blue += b;
+
+            sums = r + g + b;
+            if (sums <= min_intensity) {
+                min_intensity = sums;
+                minR = r;
+                minG = g;
+                minB = b;
+            } else if (sums > max_intensity) {
+                max_intensity = sums;
+                maxR = r;
+                maxG = g;
+                maxB = b;
+            }
+
+
+            red -= minR;
+            red -= maxR;
+            green -= minG;
+            green -= maxG;
+            blue -= minB;
+            blue -= maxB;
+
+
+            // divide by kernel's weight
+            red = red / 7;
+            green = green / 7;
+            blue = blue / 7;
+
+            //*******************************************************************
+            // optimization- reduce call to max and min on the stack
+            //*******************************************************************
+            // truncate each pixel's color values to match the range [0,255]
+            maxi = (red > 0 ? red : 0);
+            (*dest) = (maxi < 255 ? maxi : 255);
+            maxi = (green > 0 ? green : 0);
+            (*(dest + 1)) = (maxi < 255 ? maxi : 255);
+            maxi = (blue > 0 ? blue : 0);
+            (*(dest + 2)) = (maxi < 255 ? maxi : 255);
+
+
+            data += 3;
+            dest += 3;
+            dataBefore += 3;
+            dataAfter += 3;
+        }
+
+
+
         (*(long *) dest) = (*(long *) data);
         data += 6;
         dest += 6;
@@ -704,12 +1139,12 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3) {
 
 void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sharpRsltImgName, char* filteredBlurRsltImgName, char* filteredSharpRsltImgName, char flag) {
 
-    register int m3 = m + (m << 1), mn3 = m3 * n;
+    register int mm = m, m3 = mm + (mm << 1), mn3 = m3 * n;
     register unsigned char *dest = (unsigned char *) malloc(mn3);
     register unsigned char *data = (unsigned char *) image->data, *src1 = data, *dest1 = dest;
     image->data = (char *)dest1;
-    register int size = m3, words = size / 8, aligned_size = (words << 3), offset = size - aligned_size;
-    register int pages = words / 8, offset2 = words - (pages << 3);
+    register int_fast16_t size = m3, words = size / 8, aligned_size = (words << 3), offset = size - aligned_size;
+    register int_fast16_t pages = words / 8, offset2 = words - (pages << 3);
     register long *src64 = (long *) src1, *dst64 = (long *) dest1;
 
     while (pages--) {
@@ -736,12 +1171,12 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
         // blur image
         //doConvolution(image, blurKernel, 9, false);
         //smooth1(image, 9, false);
-        apply1(data, dest, m3);
+        apply1(data, dest, m3, mm);
     } else {
         // apply extermum filtered kernel to blur image
         //doConvolution(image, blurKernel, 7, true);
 //        smooth1(image, 7, true);
-        apply2(data, dest, m3);
+        apply2(data, dest, m3, mm);
     }
 
     offset = size - aligned_size;
@@ -798,11 +1233,11 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
 //    (*(int *) dest) = (*(int *) data);
     data += 3;
     dest += 3;
-    register int i, j, until = m - 2, until2 = until - 1;
+    register int_fast16_t i, j, until = mm - 2, until2 = until - 1;
     for (i = until; i > 0; i--) {
         register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
-        register int red, green, blue , red9, green9, blue9, red9R, green9R, blue9R;
-        register int redL, greenL, blueL, redM, greenM, blueM, redR, greenR, blueR;
+        register int_fast16_t red, green, blue , red9, green9, blue9, red9R, green9R, blue9R;
+        register int_fast16_t redL, greenL, blueL, redM, greenM, blueM, redR, greenR, blueR;
 
 
         redL = -*(dataBefore - 3);
@@ -849,7 +1284,7 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
         blue = (blueL + blueM + ((-blue9) << 3) - blue9 + blueR + blue9R);
 
 
-        register int maxi = (red > 0 ? red : 0);
+        register int_fast16_t maxi = (red > 0 ? red : 0);
         (*dest) = (maxi < 255 ? maxi : 255);
         maxi = (green > 0 ? green : 0);
         (*(dest + 1)) = (maxi < 255 ? maxi : 255);
