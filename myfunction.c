@@ -152,7 +152,6 @@
 //    }
 //    return NULL;
 //}
-
 void apply1(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
     register unsigned char *data = data1, *dest = dest1;
     register int m3 = mm3;
@@ -433,6 +432,7 @@ void apply1(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
         data += 6;
         dest += 6;
     }
+    printf("%d           ",dest - dest1 + m3);
 }
 
 void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
@@ -448,10 +448,10 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
     register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
     for (i = until; i > 0; i--) {
         register int_fast16_t maxR, maxG, maxB, minR, minG, minB;
+        register int_fast16_t maxR1, maxG1, maxB1, minR1, minG1, minB1;
 
         for (j = until2; j > 0; j--) {
 
-            register int_fast16_t maxR1, maxG1, maxB1, minR1, minG1, minB1;
             r = *(dataBefore - 3);
             g = *(dataBefore - 2);
             b = *(dataBefore - 1);
@@ -1024,38 +1024,45 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
         dataBefore += 6;
         dataAfter += 6;
     }
+    printf("%d           ",dest - dest1 + m3);
 }
 
 void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sharpRsltImgName, char* filteredBlurRsltImgName, char* filteredSharpRsltImgName, char flag) {
 
-    register int mm = m, m3 = mm + (mm << 1), mn3 = m3 * n;
+    register int mm = m, m3 = mm + (mm << 1), mn3 = m3 * mm;
     register unsigned char *dest = (unsigned char *) malloc(mn3);
     register unsigned char *data = (unsigned char *) image->data, *src1 = data, *dest1 = dest;
     image->data = (char *)dest1;
-    register int_fast16_t size = m3, words = size / 8, aligned_size = (words << 3), offset = size - aligned_size;
-    register int_fast16_t pages = words / 8, offset2 = words - (pages << 3);
+    register int size = m3, words = size / 8, aligned_size = (words << 3), offset = size - aligned_size;
+    register int pages = words / 8, offset2 = words - (pages << 3);
     register long *src64 = (long *) src1, *dst64 = (long *) dest1;
 
-    while (pages--) {
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-    }
-    while (offset2--)
-        *(dst64++) = *(src64++);
 
-    if (offset) {
-        data = &data[aligned_size];
-        dest = &dest[aligned_size];
-        while (offset--)
-            *(dest++) = *(data++);
+//    while (pages--) {
+//        *(dst64++) = *(src64++);
+//        *(dst64++) = *(src64++);
+//        *(dst64++) = *(src64++);
+//        *(dst64++) = *(src64++);
+//        *(dst64++) = *(src64++);
+//        *(dst64++) = *(src64++);
+//        *(dst64++) = *(src64++);
+//        *(dst64++) = *(src64++);
+//    }
+//    while (offset2--)
+//        *(dst64++) = *(src64++);
+//
+//    if (offset) {
+//        data = &data[aligned_size];
+//        dest = &dest[aligned_size];
+//        while (offset--)
+//            *(dest++) = *(data++);
+//    }
+    for (int i = 0; i < m3; ++i) {
+        *(dest++) = *(data++);
     }
 
+//    data = src1 + m3;
+//    dest = dest1 + m3;
     if (flag == '1') {
         // blur image
         //doConvolution(image, blurKernel, 9, false);
@@ -1068,32 +1075,37 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
         apply2(data, dest, m3, mm);
     }
 
-    offset = size - aligned_size;
-    pages = words / 8;
-    offset2 = words - (pages << 3);
-    data += (m - 2) * m3;
-    dest += (m - 2) * m3;
-    src64 = (long *) data;
-    dst64 = (long *) dest;
-    while (pages--) {
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-    }
-    while (offset2--)
-        *(dst64++) = *(src64++);
+//    offset = size - aligned_size;
+//    pages = words / 8;
+//    offset2 = words - (pages << 3);
+    data = src1 + mn3 - m3;
+    dest = dest1 + mn3 - m3;
+//    src64 = (long *) data;
+//    dst64 = (long *) dest;
+//    while (pages--) {
+//        *(dst64++) = *(src64++);
+//        *(dst64++) = *(src64++);
+//        *(dst64++) = *(src64++);
+//        *(dst64++) = *(src64++);
+//        *(dst64++) = *(src64++);
+//        *(dst64++) = *(src64++);
+//        *(dst64++) = *(src64++);
+//        *(dst64++) = *(src64++);
+//    }
+//    while (offset2--)
+//        *(dst64++) = *(src64++);
+//
+//    if (offset) {
+//        data += aligned_size;
+//        dest += aligned_size;
+//        while (offset--)
+//            *(dest++) = *(data++);
+//    }
 
-    if (offset) {
-        data = &data[aligned_size];
-        dest = &dest[aligned_size];
-        while (offset--)
-            *(dest++) = *(data++);
+    for (int i = 0; i < m3; ++i) {
+        *(dest++) = *(data++);
     }
+
 
     if(flag == '1') {
         // write result image to file
@@ -1122,7 +1134,7 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
 //    (*(int *) dest) = (*(int *) data);
     data += 3;
     dest += 3;
-    register int_fast16_t i, j, until = mm - 2, until2 = (until - 2) / 4, until24 = (until - 2) % 4;
+    register int_fast16_t i, j, until = mm - 2, until2 = (until - 2) / 2, until22 = (until - 2) % 2;
     for (i = until; i > 0; i--) {
         register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
         register int_fast16_t red, green, blue , red9, green9, blue9, red9R, green9R, blue9R;
@@ -1318,98 +1330,9 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
 
             data += 3;
             dest += 3;
-
-
-
-
-            dataBefore += 3;
-            dataAfter += 3;
-            redL = redM + red9;
-            redM = redR;
-            greenL = greenM + green9;
-            greenM = greenR;
-            blueL = blueM + blue9;
-            blueM = blueR;
-            red9 = red9R;
-            green9 = green9R;
-            blue9 = blue9R;
-
-            redR = -(*dataBefore);
-            greenR = -(*(dataBefore + 1));
-            blueR = -(*(dataBefore + 2));
-
-            red9R = -(*(data + 3));
-            green9R = -(*(data + 4));
-            blue9R = -(*(data + 5));
-
-            redR -= *dataAfter;
-            greenR -= *(dataAfter + 1);
-            blueR -= *(dataAfter + 2);
-
-
-            red = (redL + redM + ((-red9) << 3) - red9 + redR + red9R);
-            green = (greenL + greenM + ((-green9) << 3) - green9 + greenR + green9R);
-            blue = (blueL + blueM + ((-blue9) << 3) - blue9 + blueR + blue9R);
-
-
-            maxi = (red > 0 ? red : 0);
-            (*dest) = (maxi < 255 ? maxi : 255);
-            maxi = (green > 0 ? green : 0);
-            (*(dest + 1)) = (maxi < 255 ? maxi : 255);
-            maxi = (blue > 0 ? blue : 0);
-            (*(dest + 2)) = (maxi < 255 ? maxi : 255);
-
-
-            data += 3;
-            dest += 3;
-
-
-
-
-
-            dataBefore += 3;
-            dataAfter += 3;
-            redL = redM + red9;
-            redM = redR;
-            greenL = greenM + green9;
-            greenM = greenR;
-            blueL = blueM + blue9;
-            blueM = blueR;
-            red9 = red9R;
-            green9 = green9R;
-            blue9 = blue9R;
-
-            redR = -(*dataBefore);
-            greenR = -(*(dataBefore + 1));
-            blueR = -(*(dataBefore + 2));
-
-            red9R = -(*(data + 3));
-            green9R = -(*(data + 4));
-            blue9R = -(*(data + 5));
-
-            redR -= *dataAfter;
-            greenR -= *(dataAfter + 1);
-            blueR -= *(dataAfter + 2);
-
-
-            red = (redL + redM + ((-red9) << 3) - red9 + redR + red9R);
-            green = (greenL + greenM + ((-green9) << 3) - green9 + greenR + green9R);
-            blue = (blueL + blueM + ((-blue9) << 3) - blue9 + blueR + blue9R);
-
-
-            maxi = (red > 0 ? red : 0);
-            (*dest) = (maxi < 255 ? maxi : 255);
-            maxi = (green > 0 ? green : 0);
-            (*(dest + 1)) = (maxi < 255 ? maxi : 255);
-            maxi = (blue > 0 ? blue : 0);
-            (*(dest + 2)) = (maxi < 255 ? maxi : 255);
-
-
-            data += 3;
-            dest += 3;
         }
 
-        for (j = until24; j > 0; j--) {
+        if (until22 != 0) {
 
             dataBefore += 3;
             dataAfter += 3;
@@ -1470,4 +1393,3 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
     }
     free(dest1);
 }
-
