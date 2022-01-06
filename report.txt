@@ -3,9 +3,9 @@ Flat profile:
 Each sample counts as 0.01 seconds.
   %   cumulative   self              self     total           
  time   seconds   seconds    calls  Ts/call  Ts/call  name    
- 69.57      0.54     0.54                             apply2
- 19.51      0.69     0.15                             myfunction
- 10.40      0.77     0.08                             writeBMPOpt
+ 57.94      0.44     0.44                             apply2
+ 25.02      0.63     0.19                             myfunction
+ 17.12      0.76     0.13                             writeBMP
 
  %         the percentage of the total running time of the
 time       program used by this function.

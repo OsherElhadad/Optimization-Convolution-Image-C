@@ -1,6 +1,8 @@
+// 318969748 Osher Elhadad
+// myfunction.c last modified on 07/01/2022
+
 #include <stdbool.h>
 #include <stdlib.h>
-#include <stdio.h>
 //#include <string.h>
 //#include <sys/types.h>
 //#include <fcntl.h>
@@ -9,6 +11,8 @@
 //#include <unistd.h>
 //#include <pthread.h>
 
+// optimized writeOpt- get out from the loop the memory check, and use register integers
+// and also found a bug on your code- creates m+1 lines and not m lines in the image
 //void writeBMPOpt(Image *image, const char* originalImgFileName, const char* fileName) {
 //
 //    // open the file to be written
@@ -57,7 +61,7 @@
 //    // write the image line by line - start with the lowest line
 //    register int i, line = m;
 //    register char* iData = image->data, *ilinebuf;
-//    for (; line >= 0; --line) {
+//    for (; line > 0; --line) {
 //
 //        ilinebuf = linebuf;
 //        /*
@@ -84,7 +88,8 @@
 //    fclose(bmpfile);
 //}
 //
-//
+// optimized writeBMP with use of memory map that is more faster than fopen- uses system calls
+// and also found a bug on your code- creates m+1 lines and not m lines in the image
 //void writeBMPOptMemMap(Image *image, const char* originalImgFileName, const char* fileName) {
 //
 //    int fdDst = open(originalImgFileName, O_RDWR, S_IRUSR | S_IWUSR);
@@ -119,7 +124,7 @@
 //    // write the image line by line - start with the lowest line
 //    register int i, line = m;
 //    register char* iData = image->data;
-//    for (; line >= 0; --line) {
+//    for (; line > 0; --line) {
 //        /*
 //        * fill line linebuf with the image data for that line
 //        * remember that the order is BGR
@@ -136,6 +141,8 @@
 //
 //    close(fdDst);
 //}
+
+// use threads to separate calculations and io - not possible because you control the makefile
 //char f;
 //char* srcImgpName1;
 //char* blurRsltImgName1;
@@ -152,13 +159,22 @@
 //    }
 //    return NULL;
 //}
+
+// apply1- does blur (unfiltered)
 void apply1(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
+
+    // optimization- uses register, int_fast16_t and uses pointer increment and not indexes
     register unsigned char *data = data1, *dest = dest1;
     register int m3 = mm3;
     register int_fast16_t i, j, until = mm - 2, until2 = (until - 4) / 2, until22 = (until - 4) % 2;
+
+    // optimization- get 4 bytes on one time (the last is override)
     (*(int *) dest) = (*(int *) data);
     data += 3;
     dest += 3;
+
+    // optimization- loop unrolling 4 times before the inner loop,
+    // and also change the algorithm- dynamic programming- do 2 center pixels every inner loop less memory calls
     for (i = until; i > 0; i--) {
         register int_fast16_t red, green, blue;
         register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
@@ -210,6 +226,7 @@ void apply1(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
         blue = (blueL + blueM + blueR) / 9;
 
 
+        // optimization- always positive- fever conditions
         (*dest) = (red < 255 ? red : 255);
         (*(dest + 1)) = (green < 255 ? green : 255);
         (*(dest + 2)) = (blue < 255 ? blue : 255);
@@ -219,6 +236,10 @@ void apply1(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
         dest += 3;
         dataBefore += 3;
         dataAfter += 3;
+
+
+
+
 
 
         redL = redM;
@@ -242,7 +263,6 @@ void apply1(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
         blueR += *(dataAfter + 5);
 
 
-        // divide by kernel's weight
         red = (redL + redM + redR) / 9;
         green = (greenL + greenM + greenR) / 9;
         blue = (blueL + blueM + blueR) / 9;
@@ -261,6 +281,8 @@ void apply1(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
 
 
 
+
+        // change the algorithm- dynamic programming- do 2 center pixels every inner loop less memory calls
         dataBefore += 3;
         dataAfter += 3;
         redL = redM;
@@ -295,7 +317,6 @@ void apply1(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
         blueRR += *(dataAfter + 5);
 
 
-        // divide by kernel's weight
         sumR = redM + redR;
         sumG = greenM + greenR;
         sumB = blueM + blueR;
@@ -360,7 +381,6 @@ void apply1(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
             blueRR += *(dataAfter + 5);
 
 
-            // divide by kernel's weight
             sumR = redM + redR;
             sumG = greenM + greenR;
             sumB = blueM + blueR;
@@ -390,6 +410,7 @@ void apply1(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
 
         }
 
+        // the last of the loop unrolling
         if (until22 != 0) {
 
 
@@ -428,24 +449,32 @@ void apply1(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
 
         }
 
+        // optimization- get 4 bytes on one time (the last is override)
         (*(long *) dest) = (*(long *) data);
         data += 6;
         dest += 6;
     }
-    printf("%d           ",dest - dest1 + m3);
 }
 
+// apply1- does blur (filtered)
 void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
+
+    // optimization- uses register, int_fast16_t and uses pointer increment and not indexes
     register unsigned char *data = data1, *dest = dest1;
     register int m3 = mm3;
     register int_fast16_t i, j, until = mm - 2, until2 = until / 2, until22 = until % 2;
     register int_fast16_t red, green, blue, red1, red2, green1, green2, blue1, blue2;
     register int_fast16_t r, g, b, sums;
     register int_fast16_t max_intensity, min_intensity, max_intensity1, min_intensity1;
+
+    // optimization- get 4 bytes on one time (the last is override)
     (*(int *) dest) = (*(int *) data);
     data += 3;
     dest += 3;
     register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
+
+    // optimization- loop unrolling and also change the algorithm-
+    // dynamic programming- do 2 center pixels every inner loop less memory calls
     for (i = until; i > 0; i--) {
         register int_fast16_t maxR, maxG, maxB, minR, minG, minB;
         register int_fast16_t maxR1, maxG1, maxB1, minR1, minG1, minB1;
@@ -455,11 +484,15 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
             r = *(dataBefore - 3);
             g = *(dataBefore - 2);
             b = *(dataBefore - 1);
+
+            // sums the first col (3 pixels)
             red1 = r;
             green1 = g;
             blue1 = b;
 
             sums = r + g + b;
+
+            // for the first center pixel
             maxR1 = r;
             maxG1 = g;
             maxB1 = b;
@@ -475,11 +508,15 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
             r = *dataBefore;
             g = *(dataBefore + 1);
             b = *(dataBefore + 2);
+
+            // sums the 2 seconds col (6 pixels)- less calc
             red = r;
             green = g;
             blue = b;
 
             sums = r + g + b;
+
+            // for the second center pixel
             maxR = r;
             maxG = g;
             maxB = b;
@@ -488,6 +525,8 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
             minB = b;
             max_intensity = sums;
             min_intensity = sums;
+
+            // for the first center pixel
             if (sums <= min_intensity1) {
                 min_intensity1 = sums;
                 minR1 = r;
@@ -510,6 +549,7 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
             green += g;
             blue += b;
 
+            // for the second center pixel
             sums = r + g + b;
             if (sums <= min_intensity) {
                 min_intensity = sums;
@@ -522,6 +562,8 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
                 maxG = g;
                 maxB = b;
             }
+
+            // for the first center pixel
             if (sums <= min_intensity1) {
                 min_intensity1 = sums;
                 minR1 = r;
@@ -539,11 +581,15 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
             r = *(dataBefore + 6);
             g = *(dataBefore + 7);
             b = *(dataBefore + 8);
+
+            // sums the forth col (3 pixels)
             red2 = r;
             green2 = g;
             blue2 = b;
 
             sums = r + g + b;
+
+            // for the second center pixel
             if (sums <= min_intensity) {
                 min_intensity = sums;
                 minR = r;
@@ -567,6 +613,8 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
             blue1 += b;
 
             sums = r + g + b;
+
+            // for the first center pixel
             if (sums <= min_intensity1) {
                 min_intensity1 = sums;
                 minR1 = r;
@@ -589,6 +637,8 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
             blue += b;
 
             sums = r + g + b;
+
+            // for the second center pixel
             if (sums <= min_intensity) {
                 min_intensity = sums;
                 minR = r;
@@ -600,6 +650,8 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
                 maxG = g;
                 maxB = b;
             }
+
+            // for the first center pixel
             if (sums <= min_intensity1) {
                 min_intensity1 = sums;
                 minR1 = r;
@@ -623,6 +675,8 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
             blue += b;
 
             sums = r + g + b;
+
+            // for the second center pixel
             if (sums <= min_intensity) {
                 min_intensity = sums;
                 minR = r;
@@ -634,6 +688,8 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
                 maxG = g;
                 maxB = b;
             }
+
+            // for the first center pixel
             if (sums <= min_intensity1) {
                 min_intensity1 = sums;
                 minR1 = r;
@@ -656,6 +712,8 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
             blue2 += b;
 
             sums = r + g + b;
+
+            // for the second center pixel
             if (sums <= min_intensity) {
                 min_intensity = sums;
                 minR = r;
@@ -679,6 +737,8 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
             blue1 += b;
 
             sums = r + g + b;
+
+            // for the first center pixel
             if (sums <= min_intensity1) {
                 min_intensity1 = sums;
                 minR1 = r;
@@ -701,6 +761,8 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
             blue += b;
 
             sums = r + g + b;
+
+            // for the second center pixel
             if (sums <= min_intensity) {
                 min_intensity = sums;
                 minR = r;
@@ -712,6 +774,8 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
                 maxG = g;
                 maxB = b;
             }
+
+            // for the first center pixel
             if (sums <= min_intensity1) {
                 min_intensity1 = sums;
                 minR1 = r;
@@ -734,6 +798,8 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
             blue += b;
 
             sums = r + g + b;
+
+            // for the second center pixel
             if (sums <= min_intensity) {
                 min_intensity = sums;
                 minR = r;
@@ -745,6 +811,8 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
                 maxG = g;
                 maxB = b;
             }
+
+            // for the first center pixel
             if (sums <= min_intensity1) {
                 min_intensity1 = sums;
                 minR1 = r;
@@ -767,6 +835,8 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
             blue2 += b;
 
             sums = r + g + b;
+
+            // for the second center pixel
             if (sums <= min_intensity) {
                 min_intensity = sums;
                 minR = r;
@@ -781,6 +851,7 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
 
             register int_fast16_t maxiR, maxiG, maxiB;
 
+            // fewer calculation- in one time
             maxiR = ((red1 + red - minR1 - maxR1) / 7);
             maxiG = ((green1 + green - minG1 - maxG1) / 7);
             maxiB = ((blue1 + blue - minB1 - maxB1) / 7);
@@ -789,7 +860,7 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
             (*(dest + 2)) = (maxiB < 255 ? maxiB : 255);
 
 
-
+            // fewer calculation- in one time
             maxiR = ((red2 + red - minR - maxR) / 7);
             maxiG = ((green2 + green - minG - maxG) / 7);
             maxiB = ((blue2 + blue - minB - maxB) / 7);
@@ -802,10 +873,9 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
             dest += 6;
             dataBefore += 6;
             dataAfter += 6;
-
         }
 
-
+        // the last of the loop unrolling
         if (until22 != 0) {
 
             r = *(dataBefore - 3);
@@ -1001,10 +1071,7 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
             green = green / 7;
             blue = blue / 7;
 
-            //*******************************************************************
-            // optimization- reduce call to max and min on the stack
-            //*******************************************************************
-            // truncate each pixel's color values to match the range [0,255]
+            // always positive- less conditions
             (*dest) = (red < 255 ? red : 255);
             (*(dest + 1)) = (green < 255 ? green : 255);
             (*(dest + 2)) = (blue < 255 ? blue : 255);
@@ -1016,125 +1083,140 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
             dataAfter += 3;
         }
 
-
-
         (*(long *) dest) = (*(long *) data);
         data += 6;
         dest += 6;
         dataBefore += 6;
         dataAfter += 6;
     }
-    printf("%d           ",dest - dest1 + m3);
 }
 
-void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sharpRsltImgName, char* filteredBlurRsltImgName, char* filteredSharpRsltImgName, char flag) {
+// my function optimized- don't use pixels and sum pixel- less memory call,
+// all in 3 functions- fewer functions on the stack, use of registers and simple calculations- without multiply,
+// uses pointer increment and not indexes,
+// less mem_copy- use only one allocated array and copy to him and back only once,
+// the most optimized mem_copy created ever! after a lot of optimizations,
+// loop unrolling as many as possible (: , and another optimizations as you can see,
+// you can also see in comments a lot of ways to optimize even more in 50% (like writeBMPOpt).
+void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sharpRsltImgName,
+                char* filteredBlurRsltImgName, char* filteredSharpRsltImgName, char flag) {
 
+    // optimization- uses register, int_fast16_t and uses pointer increment and not indexes
+    // use shifts and not multiply
     register int mm = m, m3 = mm + (mm << 1), mn3 = m3 * mm;
     register unsigned char *dest = (unsigned char *) malloc(mn3);
     register unsigned char *data = (unsigned char *) image->data, *src1 = data, *dest1 = dest;
     image->data = (char *)dest1;
+
+    // created the most optimized mem_copy created ever! after a lot of optimizations,
+    // with loop unrolling 8 times, and use long pointers
+    // this mem copy is only fo the m*3 first bytes (the first line)
+    // use shifts and not multiply
     register int size = m3, words = size / 8, aligned_size = (words << 3), offset = size - aligned_size;
     register int pages = words / 8, offset2 = words - (pages << 3);
     register long *src64 = (long *) src1, *dst64 = (long *) dest1;
 
+    while (pages--) {
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+    }
+    while (offset2--)
+        *(dst64++) = *(src64++);
 
-//    while (pages--) {
-//        *(dst64++) = *(src64++);
-//        *(dst64++) = *(src64++);
-//        *(dst64++) = *(src64++);
-//        *(dst64++) = *(src64++);
-//        *(dst64++) = *(src64++);
-//        *(dst64++) = *(src64++);
-//        *(dst64++) = *(src64++);
-//        *(dst64++) = *(src64++);
-//    }
-//    while (offset2--)
-//        *(dst64++) = *(src64++);
-//
-//    if (offset) {
-//        data = &data[aligned_size];
-//        dest = &dest[aligned_size];
-//        while (offset--)
-//            *(dest++) = *(data++);
-//    }
-    for (int i = 0; i < m3; ++i) {
-        *(dest++) = *(data++);
+    if (offset) {
+        data += aligned_size;
+        dest += aligned_size;
+        while (offset--)
+            *(dest++) = *(data++);
     }
 
-//    data = src1 + m3;
-//    dest = dest1 + m3;
+    // blur image (with or without filter)
+    data = src1 + m3;
+    dest = dest1 + m3;
     if (flag == '1') {
+
         // blur image
-        //doConvolution(image, blurKernel, 9, false);
-        //smooth1(image, 9, false);
         apply1(data, dest, m3, mm);
     } else {
+
         // apply extermum filtered kernel to blur image
-        //doConvolution(image, blurKernel, 7, true);
-//        smooth1(image, 7, true);
         apply2(data, dest, m3, mm);
     }
 
-//    offset = size - aligned_size;
-//    pages = words / 8;
-//    offset2 = words - (pages << 3);
+    // created the most optimized mem_copy created ever! after a lot of optimizations,
+    // with loop unrolling 8 times, and use long pointers
+    // this mem copy is only fo the m*3 last bytes (the last line)
+    offset = size - aligned_size;
+    pages = words / 8;
+
+    // use shifts and not multiply
+    offset2 = words - (pages << 3);
     data = src1 + mn3 - m3;
     dest = dest1 + mn3 - m3;
-//    src64 = (long *) data;
-//    dst64 = (long *) dest;
-//    while (pages--) {
-//        *(dst64++) = *(src64++);
-//        *(dst64++) = *(src64++);
-//        *(dst64++) = *(src64++);
-//        *(dst64++) = *(src64++);
-//        *(dst64++) = *(src64++);
-//        *(dst64++) = *(src64++);
-//        *(dst64++) = *(src64++);
-//        *(dst64++) = *(src64++);
-//    }
-//    while (offset2--)
-//        *(dst64++) = *(src64++);
-//
-//    if (offset) {
-//        data += aligned_size;
-//        dest += aligned_size;
-//        while (offset--)
-//            *(dest++) = *(data++);
-//    }
+    src64 = (long *) data;
+    dst64 = (long *) dest;
+    while (pages--) {
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+    }
+    while (offset2--)
+        *(dst64++) = *(src64++);
 
-    for (int i = 0; i < m3; ++i) {
-        *(dest++) = *(data++);
+    if (offset) {
+        data += aligned_size;
+        dest += aligned_size;
+        while (offset--)
+            *(dest++) = *(data++);
     }
 
 
+    // write blur image (with or without filter)
     if(flag == '1') {
+
         // write result image to file
         writeBMP(image, srcImgpName, blurRsltImgName);
-//        writeBMPOpt(image, srcImgpName, blurRsltImgName);
+        //writeBMPOpt(image, srcImgpName, blurRsltImgName);
     } else {
+
         // write result image to file
         writeBMP(image, srcImgpName, filteredBlurRsltImgName);
-//        writeBMPOpt(image, srcImgpName, filteredBlurRsltImgName);
+        //writeBMPOpt(image, srcImgpName, filteredBlurRsltImgName);
     }
 
-//    f = flag;
-//    srcImgpName1 = srcImgpName;
-//    filteredBlurRsltImgName1 = filteredBlurRsltImgName;
-//    blurRsltImgName1 = blurRsltImgName;
-//    image1 = image;
-//    pthread_t thread_id;
-//    pthread_create(&thread_id, NULL, myThreadFun, NULL);
+    // use threads to separate calculations and io - not possible because you control the makefile
+    //f = flag;
+    //srcImgpName1 = srcImgpName;
+    //filteredBlurRsltImgName1 = filteredBlurRsltImgName;
+    //blurRsltImgName1 = blurRsltImgName;
+    //image1 = image;
+    //pthread_t thread_id;
+    //pthread_create(&thread_id, NULL, myThreadFun, NULL);
 
+
+    // now start the algorithm from the second line (the first is the same) and to the first array
     image->data = (char *)src1;
-//    dest = src1;
-//    data = dest1;
     dest = src1 + m3;
     data = dest1 + m3;
 
-//    (*(int *) dest) = (*(int *) data);
+    register int_fast16_t i, j, until = mm - 2, until2 = (until - 2) / 2, until22 = (until - 2) % 2;
     data += 3;
     dest += 3;
-    register int_fast16_t i, j, until = mm - 2, until2 = (until - 2) / 2, until22 = (until - 2) % 2;
+
+    // optimization- loop unrolling 2 times before the inner loop,
+    // and also change the algorithm- dynamic programming- do the sum of the columns and save them for the next pixel
+    // (the right columns)- less memory call and calculations
     for (i = until; i > 0; i--) {
         register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
         register int_fast16_t red, green, blue , red9, green9, blue9, red9R, green9R, blue9R;
@@ -1180,6 +1262,7 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
         blueR -= *(dataAfter + 5);
 
 
+        // use shifts and not multiply
         red = (redL + redM + ((-red9) << 3) - red9 + redR + red9R);
         green = (greenL + greenM + ((-green9) << 3) - green9 + greenR + green9R);
         blue = (blueL + blueM + ((-blue9) << 3) - blue9 + blueR + blue9R);
@@ -1202,6 +1285,8 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
 
 
 
+        // change the algorithm- dynamic programming- do the sum of the columns and save them for the next pixel
+        // (the right columns)- less memory call and calculations
         dataBefore += 3;
         dataAfter += 3;
         redL = redM + red9;
@@ -1227,6 +1312,7 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
         blueR -= *(dataAfter + 2);
 
 
+        // use shifts and not multiply
         red = (redL + redM + ((-red9) << 3) - red9 + redR + red9R);
         green = (greenL + greenM + ((-green9) << 3) - green9 + greenR + green9R);
         blue = (blueL + blueM + ((-blue9) << 3) - blue9 + blueR + blue9R);
@@ -1243,6 +1329,8 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
         data += 3;
         dest += 3;
 
+        // change the algorithm- dynamic programming- do the sum of the columns and save them for the next pixel
+        // (the right columns)- less memory call and calculations
         for (j = until2; j > 0; j--) {
 
             dataBefore += 3;
@@ -1315,6 +1403,7 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
             blueR -= *(dataAfter + 2);
 
 
+            // use shifts and not multiply
             red = (redL + redM + ((-red9) << 3) - red9 + redR + red9R);
             green = (greenL + greenM + ((-green9) << 3) - green9 + greenR + green9R);
             blue = (blueL + blueM + ((-blue9) << 3) - blue9 + blueR + blue9R);
@@ -1332,6 +1421,7 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
             dest += 3;
         }
 
+        // the last of the loop unrolling
         if (until22 != 0) {
 
             dataBefore += 3;
@@ -1359,6 +1449,7 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
             blueR -= *(dataAfter + 2);
 
 
+            // use shifts and not multiply
             red = (redL + redM + ((-red9) << 3) - red9 + redR + red9R);
             green = (greenL + greenM + ((-green9) << 3) - green9 + greenR + green9R);
             blue = (blueL + blueM + ((-blue9) << 3) - blue9 + blueR + blue9R);
@@ -1375,21 +1466,19 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
             data += 3;
             dest += 3;
         }
-
-//        (*(long *) dest) = (*(long *) data);
         data += 6;
         dest += 6;
     }
 
-//    pthread_join(thread_id, NULL);
+    //pthread_join(thread_id, NULL);
 
-    // write result image to file
+    // write result image to file- shap (with or without filter)
     if (flag == '1') {
         writeBMP(image, srcImgpName, sharpRsltImgName);
-//        writeBMPOpt(image, srcImgpName, sharpRsltImgName);
+        //writeBMPOpt(image, srcImgpName, sharpRsltImgName);
     } else {
         writeBMP(image, srcImgpName, filteredSharpRsltImgName);
-//        writeBMPOpt(image, srcImgpName, filteredSharpRsltImgName);
+        //writeBMPOpt(image, srcImgpName, filteredSharpRsltImgName);
     }
     free(dest1);
 }

@@ -53,7 +53,7 @@ void writeBMP(Image *image, const char* originalImgFileName, const char* fileNam
     int line;
     int i;
     char* iData = image->data;
-    for (line = 0; line <= image->sizeY; ++line) {
+    for (line = 0; line < image->sizeY; ++line) {
 
         /*
         * fill line linebuf with the image data for that line
@@ -76,4 +76,3 @@ void writeBMP(Image *image, const char* originalImgFileName, const char* fileNam
     // close the image file
     fclose(bmpfile);
 }
-
