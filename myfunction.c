@@ -1,6 +1,6 @@
 #include <stdbool.h>
 #include <stdlib.h>
-//#include <stdio.h>
+#include <stdio.h>
 //#include <string.h>
 //#include <sys/types.h>
 //#include <fcntl.h>
@@ -156,7 +156,7 @@
 void apply1(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
     register unsigned char *data = data1, *dest = dest1;
     register int m3 = mm3;
-    register int_fast16_t i, j, until = mm - 2, until2 = until - 1;
+    register int_fast16_t i, j, until = mm - 2, until2 = (until - 4) / 2, until22 = (until - 4) % 2;
     (*(int *) dest) = (*(int *) data);
     data += 3;
     dest += 3;
@@ -164,6 +164,7 @@ void apply1(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
         register int_fast16_t red, green, blue;
         register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
         register int_fast16_t redL, greenL, blueL, redM, greenM, blueM, redR, greenR, blueR;
+        register int_fast16_t redRR, greenRR, blueRR, sumR, sumG, sumB;
 
         redL = *(dataBefore - 3);
         greenL = *(dataBefore - 2);
@@ -219,16 +220,188 @@ void apply1(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
         dest += 3;
         dataBefore += 3;
         dataAfter += 3;
+
+
+        redL = redM;
+        redM = redR;
+        greenL = greenM;
+        greenM = greenR;
+        blueL = blueM;
+        blueM = blueR;
+
+        redR = *(dataBefore + 3);
+        greenR = *(dataBefore + 4);
+        blueR = *(dataBefore + 5);
+
+
+        redR += *(data + 3);
+        greenR += *(data + 4);
+        blueR += *(data + 5);
+
+        redR += *(dataAfter + 3);
+        greenR += *(dataAfter + 4);
+        blueR += *(dataAfter + 5);
+
+
+        // divide by kernel's weight
+        red = (redL + redM + redR) / 9;
+        green = (greenL + greenM + greenR) / 9;
+        blue = (blueL + blueM + blueR) / 9;
+
+
+        (*dest) = (red < 255 ? red : 255);
+        (*(dest + 1)) = (green < 255 ? green : 255);
+        (*(dest + 2)) = (blue < 255 ? blue : 255);
+
+
+        data += 3;
+        dest += 3;
+        dataBefore += 3;
+        dataAfter += 3;
+
+
+
+
+        dataBefore += 3;
+        dataAfter += 3;
+        redL = redM;
+        redM = redR;
+        greenL = greenM;
+        greenM = greenR;
+        blueL = blueM;
+        blueM = blueR;
+
+        redR = *dataBefore;
+        greenR = *(dataBefore + 1);
+        blueR = *(dataBefore + 2);
+
+        redRR = *(dataBefore + 3);
+        greenRR = *(dataBefore + 4);
+        blueRR = *(dataBefore + 5);
+
+        redR += *(data + 3);
+        greenR += *(data + 4);
+        blueR += *(data + 5);
+
+        redRR += *(data + 6);
+        greenRR += *(data + 7);
+        blueRR += *(data + 8);
+
+        redR += *dataAfter;
+        greenR += *(dataAfter + 1);
+        blueR += *(dataAfter + 2);
+
+        redRR += *(dataAfter + 3);
+        greenRR += *(dataAfter + 4);
+        blueRR += *(dataAfter + 5);
+
+
+        // divide by kernel's weight
+        sumR = redM + redR;
+        sumG = greenM + greenR;
+        sumB = blueM + blueR;
+
+        red = (redL + sumR) / 9;
+        green = (greenL + sumG) / 9;
+        blue = (blueL + sumB) / 9;
+
+        (*dest) = (red < 255 ? red : 255);
+        (*(dest + 1)) = (green < 255 ? green : 255);
+        (*(dest + 2)) = (blue < 255 ? blue : 255);
+
+
+        red = (redRR + sumR) / 9;
+        green = (greenRR + sumG) / 9;
+        blue = (blueRR + sumB) / 9;
+
+        (*(dest + 3)) = (red < 255 ? red : 255);
+        (*(dest + 4)) = (green < 255 ? green : 255);
+        (*(dest + 5)) = (blue < 255 ? blue : 255);
+
+
+        data += 6;
+        dest += 6;
+        dataBefore += 3;
+        dataAfter += 3;
+
         for (j = until2; j > 0; j--) {
+
 
             dataBefore += 3;
             dataAfter += 3;
-            redL = redM;
-            redM = redR;
-            greenL = greenM;
-            greenM = greenR;
-            blueL = blueM;
-            blueM = blueR;
+            redL = redR;
+            redM = redRR;
+            greenL = greenR;
+            greenM = greenRR;
+            blueL = blueR;
+            blueM = blueRR;
+
+            redR = *dataBefore;
+            greenR = *(dataBefore + 1);
+            blueR = *(dataBefore + 2);
+
+            redRR = *(dataBefore + 3);
+            greenRR = *(dataBefore + 4);
+            blueRR = *(dataBefore + 5);
+
+            redR += *(data + 3);
+            greenR += *(data + 4);
+            blueR += *(data + 5);
+
+            redRR += *(data + 6);
+            greenRR += *(data + 7);
+            blueRR += *(data + 8);
+
+            redR += *dataAfter;
+            greenR += *(dataAfter + 1);
+            blueR += *(dataAfter + 2);
+
+            redRR += *(dataAfter + 3);
+            greenRR += *(dataAfter + 4);
+            blueRR += *(dataAfter + 5);
+
+
+            // divide by kernel's weight
+            sumR = redM + redR;
+            sumG = greenM + greenR;
+            sumB = blueM + blueR;
+
+            red = (redL + sumR) / 9;
+            green = (greenL + sumG) / 9;
+            blue = (blueL + sumB) / 9;
+
+            (*dest) = (red < 255 ? red : 255);
+            (*(dest + 1)) = (green < 255 ? green : 255);
+            (*(dest + 2)) = (blue < 255 ? blue : 255);
+
+
+            red = (redRR + sumR) / 9;
+            green = (greenRR + sumG) / 9;
+            blue = (blueRR + sumB) / 9;
+
+            (*(dest + 3)) = (red < 255 ? red : 255);
+            (*(dest + 4)) = (green < 255 ? green : 255);
+            (*(dest + 5)) = (blue < 255 ? blue : 255);
+
+
+            data += 6;
+            dest += 6;
+            dataBefore += 3;
+            dataAfter += 3;
+
+        }
+
+        if (until22 != 0) {
+
+
+            dataBefore += 3;
+            dataAfter += 3;
+            redL = redR;
+            redM = redRR;
+            greenL = greenR;
+            greenM = greenRR;
+            blueL = blueR;
+            blueM = blueRR;
 
             redR = *dataBefore;
             greenR = *(dataBefore + 1);
@@ -242,12 +415,9 @@ void apply1(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
             greenR += *(dataAfter + 1);
             blueR += *(dataAfter + 2);
 
-
-            // divide by kernel's weight
             red = (redL + redM + redR) / 9;
             green = (greenL + greenM + greenR) / 9;
             blue = (blueL + blueM + blueR) / 9;
-
 
             (*dest) = (red < 255 ? red : 255);
             (*(dest + 1)) = (green < 255 ? green : 255);
@@ -256,6 +426,7 @@ void apply1(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
 
             data += 3;
             dest += 3;
+
         }
 
         (*(long *) dest) = (*(long *) data);
@@ -267,226 +438,43 @@ void apply1(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
 void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
     register unsigned char *data = data1, *dest = dest1;
     register int m3 = mm3;
-    register int_fast16_t i, j, until = mm - 2, until2 = (until - 1) / 2, until22 = (until - 1) % 2;
-    register int_fast16_t red, green, blue;
+    register int_fast16_t i, j, until = mm - 2, until2 = until / 2, until22 = until % 2;
+    register int_fast16_t red, green, blue, red1, red2, green1, green2, blue1, blue2;
     register int_fast16_t r, g, b, sums;
-    register int_fast16_t max_intensity, min_intensity;
+    register int_fast16_t max_intensity, min_intensity, max_intensity1, min_intensity1;
     (*(int *) dest) = (*(int *) data);
     data += 3;
     dest += 3;
     register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
     for (i = until; i > 0; i--) {
-
-        r = *(dataBefore - 3);
-        g = *(dataBefore - 2);
-        b = *(dataBefore - 1);
-        red = r;
-        green = g;
-        blue = b;
-
-        sums = r + g + b;
-        register int_fast16_t maxR = r, maxG = g, maxB = b, minR = r, minG = g, minB = b;
-        max_intensity = sums;
-        min_intensity = sums;
-
-        r = *dataBefore;
-        g = *(dataBefore + 1);
-        b = *(dataBefore + 2);
-        red += r;
-        green += g;
-        blue += b;
-
-        sums = r + g + b;
-        if (sums <= min_intensity) {
-            min_intensity = sums;
-            minR = r;
-            minG = g;
-            minB = b;
-        } else if (sums > max_intensity) {
-            max_intensity = sums;
-            maxR = r;
-            maxG = g;
-            maxB = b;
-        }
-
-        r = *(dataBefore + 3);
-        g = *(dataBefore + 4);
-        b = *(dataBefore + 5);
-        red += r;
-        green += g;
-        blue += b;
-
-        sums = r + g + b;
-        if (sums <= min_intensity) {
-            min_intensity = sums;
-            minR = r;
-            minG = g;
-            minB = b;
-        } else if (sums > max_intensity) {
-            max_intensity = sums;
-            maxR = r;
-            maxG = g;
-            maxB = b;
-        }
-
-
-        r = *(data - 3);
-        g = *(data - 2);
-        b = *(data - 1);
-        red += r;
-        green += g;
-        blue += b;
-
-        sums = r + g + b;
-        if (sums <= min_intensity) {
-            min_intensity = sums;
-            minR = r;
-            minG = g;
-            minB = b;
-        } else if (sums > max_intensity) {
-            max_intensity = sums;
-            maxR = r;
-            maxG = g;
-            maxB = b;
-        }
-
-        r = *data;
-        g = *(data + 1);
-        b = *(data + 2);
-        red += r;
-        green += g;
-        blue += b;
-
-        sums = r + g + b;
-        if (sums <= min_intensity) {
-            min_intensity = sums;
-            minR = r;
-            minG = g;
-            minB = b;
-        } else if (sums > max_intensity) {
-            max_intensity = sums;
-            maxR = r;
-            maxG = g;
-            maxB = b;
-        }
-
-        r = *(data + 3);
-        g = *(data + 4);
-        b = *(data + 5);
-        red += r;
-        green += g;
-        blue += b;
-
-        sums = r + g + b;
-        if (sums <= min_intensity) {
-            min_intensity = sums;
-            minR = r;
-            minG = g;
-            minB = b;
-        } else if (sums > max_intensity) {
-            max_intensity = sums;
-            maxR = r;
-            maxG = g;
-            maxB = b;
-        }
-
-
-        r = *(dataAfter - 3);
-        g = *(dataAfter - 2);
-        b = *(dataAfter - 1);
-        red += r;
-        green += g;
-        blue += b;
-
-        sums = r + g + b;
-        if (sums <= min_intensity) {
-            min_intensity = sums;
-            minR = r;
-            minG = g;
-            minB = b;
-        } else if (sums > max_intensity) {
-            max_intensity = sums;
-            maxR = r;
-            maxG = g;
-            maxB = b;
-        }
-
-        r = *dataAfter;
-        g = *(dataAfter + 1);
-        b = *(dataAfter + 2);
-        red += r;
-        green += g;
-        blue += b;
-
-        sums = r + g + b;
-        if (sums <= min_intensity) {
-            min_intensity = sums;
-            minR = r;
-            minG = g;
-            minB = b;
-        } else if (sums > max_intensity) {
-            max_intensity = sums;
-            maxR = r;
-            maxG = g;
-            maxB = b;
-        }
-
-        r = *(dataAfter + 3);
-        g = *(dataAfter + 4);
-        b = *(dataAfter + 5);
-        red += r;
-        green += g;
-        blue += b;
-
-        sums = r + g + b;
-        if (sums <= min_intensity) {
-            min_intensity = sums;
-            minR = r;
-            minG = g;
-            minB = b;
-        } else if (sums > max_intensity) {
-            max_intensity = sums;
-            maxR = r;
-            maxG = g;
-            maxB = b;
-        }
-
-
-        red -= minR;
-        red -= maxR;
-        green -= minG;
-        green -= maxG;
-        blue -= minB;
-        blue -= maxB;
-
-
-        // divide by kernel's weight
-        red = red / 7;
-        green = green / 7;
-        blue = blue / 7;
-
-        //*******************************************************************
-        // optimization- reduce call to max and min on the stack
-        //*******************************************************************
-        // truncate each pixel's color values to match the range [0,255]
-        register int_fast16_t maxi = (red > 0 ? red : 0);
-        (*dest) = (maxi < 255 ? maxi : 255);
-        maxi = (green > 0 ? green : 0);
-        (*(dest + 1)) = (maxi < 255 ? maxi : 255);
-        maxi = (blue > 0 ? blue : 0);
-        (*(dest + 2)) = (maxi < 255 ? maxi : 255);
-
-
-        data += 3;
-        dest += 3;
-        dataBefore += 3;
-        dataAfter += 3;
+        register int_fast16_t maxR, maxG, maxB, minR, minG, minB;
 
         for (j = until2; j > 0; j--) {
 
+            register int_fast16_t maxR1, maxG1, maxB1, minR1, minG1, minB1;
             r = *(dataBefore - 3);
             g = *(dataBefore - 2);
             b = *(dataBefore - 1);
+            red1 = r;
+            green1 = g;
+            blue1 = b;
+
+            sums = r + g + b;
+            maxR1 = r;
+            maxG1 = g;
+            maxB1 = b;
+            minR1 = r;
+            minG1 = g;
+            minB1 = b;
+            max_intensity1 = sums;
+            min_intensity1 = sums;
+
+
+
+
+            r = *dataBefore;
+            g = *(dataBefore + 1);
+            b = *(dataBefore + 2);
             red = r;
             green = g;
             blue = b;
@@ -500,26 +488,20 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
             minB = b;
             max_intensity = sums;
             min_intensity = sums;
-
-            r = *dataBefore;
-            g = *(dataBefore + 1);
-            b = *(dataBefore + 2);
-            red += r;
-            green += g;
-            blue += b;
-
-            sums = r + g + b;
-            if (sums <= min_intensity) {
-                min_intensity = sums;
-                minR = r;
-                minG = g;
-                minB = b;
-            } else if (sums > max_intensity) {
-                max_intensity = sums;
-                maxR = r;
-                maxG = g;
-                maxB = b;
+            if (sums <= min_intensity1) {
+                min_intensity1 = sums;
+                minR1 = r;
+                minG1 = g;
+                minB1 = b;
+            } else if (sums > max_intensity1) {
+                max_intensity1 = sums;
+                maxR1 = r;
+                maxG1 = g;
+                maxB1 = b;
             }
+
+
+
 
             r = *(dataBefore + 3);
             g = *(dataBefore + 4);
@@ -540,14 +522,26 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
                 maxG = g;
                 maxB = b;
             }
+            if (sums <= min_intensity1) {
+                min_intensity1 = sums;
+                minR1 = r;
+                minG1 = g;
+                minB1 = b;
+            } else if (sums > max_intensity1) {
+                max_intensity1 = sums;
+                maxR1 = r;
+                maxG1 = g;
+                maxB1 = b;
+            }
 
 
-            r = *(data - 3);
-            g = *(data - 2);
-            b = *(data - 1);
-            red += r;
-            green += g;
-            blue += b;
+
+            r = *(dataBefore + 6);
+            g = *(dataBefore + 7);
+            b = *(dataBefore + 8);
+            red2 = r;
+            green2 = g;
+            blue2 = b;
 
             sums = r + g + b;
             if (sums <= min_intensity) {
@@ -561,6 +555,31 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
                 maxG = g;
                 maxB = b;
             }
+
+
+
+
+            r = *(data - 3);
+            g = *(data - 2);
+            b = *(data - 1);
+            red1 += r;
+            green1 += g;
+            blue1 += b;
+
+            sums = r + g + b;
+            if (sums <= min_intensity1) {
+                min_intensity1 = sums;
+                minR1 = r;
+                minG1 = g;
+                minB1 = b;
+            } else if (sums > max_intensity1) {
+                max_intensity1 = sums;
+                maxR1 = r;
+                maxG1 = g;
+                maxB1 = b;
+            }
+
+
 
             r = *data;
             g = *(data + 1);
@@ -581,6 +600,20 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
                 maxG = g;
                 maxB = b;
             }
+            if (sums <= min_intensity1) {
+                min_intensity1 = sums;
+                minR1 = r;
+                minG1 = g;
+                minB1 = b;
+            } else if (sums > max_intensity1) {
+                max_intensity1 = sums;
+                maxR1 = r;
+                maxG1 = g;
+                maxB1 = b;
+            }
+
+
+
 
             r = *(data + 3);
             g = *(data + 4);
@@ -601,14 +634,26 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
                 maxG = g;
                 maxB = b;
             }
+            if (sums <= min_intensity1) {
+                min_intensity1 = sums;
+                minR1 = r;
+                minG1 = g;
+                minB1 = b;
+            } else if (sums > max_intensity1) {
+                max_intensity1 = sums;
+                maxR1 = r;
+                maxG1 = g;
+                maxB1 = b;
+            }
 
 
-            r = *(dataAfter - 3);
-            g = *(dataAfter - 2);
-            b = *(dataAfter - 1);
-            red += r;
-            green += g;
-            blue += b;
+
+            r = *(data + 6);
+            g = *(data + 7);
+            b = *(data + 8);
+            red2 += r;
+            green2 += g;
+            blue2 += b;
 
             sums = r + g + b;
             if (sums <= min_intensity) {
@@ -622,6 +667,31 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
                 maxG = g;
                 maxB = b;
             }
+
+
+
+
+            r = *(dataAfter - 3);
+            g = *(dataAfter - 2);
+            b = *(dataAfter - 1);
+            red1 += r;
+            green1 += g;
+            blue1 += b;
+
+            sums = r + g + b;
+            if (sums <= min_intensity1) {
+                min_intensity1 = sums;
+                minR1 = r;
+                minG1 = g;
+                minB1 = b;
+            } else if (sums > max_intensity1) {
+                max_intensity1 = sums;
+                maxR1 = r;
+                maxG1 = g;
+                maxB1 = b;
+            }
+
+
 
             r = *dataAfter;
             g = *(dataAfter + 1);
@@ -642,6 +712,19 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
                 maxG = g;
                 maxB = b;
             }
+            if (sums <= min_intensity1) {
+                min_intensity1 = sums;
+                minR1 = r;
+                minG1 = g;
+                minB1 = b;
+            } else if (sums > max_intensity1) {
+                max_intensity1 = sums;
+                maxR1 = r;
+                maxG1 = g;
+                maxB1 = b;
+            }
+
+
 
             r = *(dataAfter + 3);
             g = *(dataAfter + 4);
@@ -662,67 +745,26 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
                 maxG = g;
                 maxB = b;
             }
-
-
-            red -= minR;
-            red -= maxR;
-            green -= minG;
-            green -= maxG;
-            blue -= minB;
-            blue -= maxB;
-
-
-            // divide by kernel's weight
-            red = red / 7;
-            green = green / 7;
-            blue = blue / 7;
-
-            //*******************************************************************
-            // optimization- reduce call to max and min on the stack
-            //*******************************************************************
-            // truncate each pixel's color values to match the range [0,255]
-            maxi = (red > 0 ? red : 0);
-            (*dest) = (maxi < 255 ? maxi : 255);
-            maxi = (green > 0 ? green : 0);
-            (*(dest + 1)) = (maxi < 255 ? maxi : 255);
-            maxi = (blue > 0 ? blue : 0);
-            (*(dest + 2)) = (maxi < 255 ? maxi : 255);
-
-
-            data += 3;
-            dest += 3;
-            dataBefore += 3;
-            dataAfter += 3;
+            if (sums <= min_intensity1) {
+                min_intensity1 = sums;
+                minR1 = r;
+                minG1 = g;
+                minB1 = b;
+            } else if (sums > max_intensity1) {
+                max_intensity1 = sums;
+                maxR1 = r;
+                maxG1 = g;
+                maxB1 = b;
+            }
 
 
 
-
-
-
-
-            r = *(dataBefore - 3);
-            g = *(dataBefore - 2);
-            b = *(dataBefore - 1);
-            red = r;
-            green = g;
-            blue = b;
-
-            sums = r + g + b;
-            maxR = r;
-            maxG = g;
-            maxB = b;
-            minR = r;
-            minG = g;
-            minB = b;
-            max_intensity = sums;
-            min_intensity = sums;
-
-            r = *dataBefore;
-            g = *(dataBefore + 1);
-            b = *(dataBefore + 2);
-            red += r;
-            green += g;
-            blue += b;
+            r = *(dataAfter + 6);
+            g = *(dataAfter + 7);
+            b = *(dataAfter + 8);
+            red2 += r;
+            green2 += g;
+            blue2 += b;
 
             sums = r + g + b;
             if (sums <= min_intensity) {
@@ -737,184 +779,34 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
                 maxB = b;
             }
 
-            r = *(dataBefore + 3);
-            g = *(dataBefore + 4);
-            b = *(dataBefore + 5);
-            red += r;
-            green += g;
-            blue += b;
+            register int_fast16_t maxiR, maxiG, maxiB;
 
-            sums = r + g + b;
-            if (sums <= min_intensity) {
-                min_intensity = sums;
-                minR = r;
-                minG = g;
-                minB = b;
-            } else if (sums > max_intensity) {
-                max_intensity = sums;
-                maxR = r;
-                maxG = g;
-                maxB = b;
-            }
+            maxiR = ((red1 + red - minR1 - maxR1) / 7);
+            maxiG = ((green1 + green - minG1 - maxG1) / 7);
+            maxiB = ((blue1 + blue - minB1 - maxB1) / 7);
+            (*dest) = (maxiR < 255 ? maxiR : 255);
+            (*(dest + 1)) = (maxiG < 255 ? maxiG : 255);
+            (*(dest + 2)) = (maxiB < 255 ? maxiB : 255);
 
 
-            r = *(data - 3);
-            g = *(data - 2);
-            b = *(data - 1);
-            red += r;
-            green += g;
-            blue += b;
 
-            sums = r + g + b;
-            if (sums <= min_intensity) {
-                min_intensity = sums;
-                minR = r;
-                minG = g;
-                minB = b;
-            } else if (sums > max_intensity) {
-                max_intensity = sums;
-                maxR = r;
-                maxG = g;
-                maxB = b;
-            }
-
-            r = *data;
-            g = *(data + 1);
-            b = *(data + 2);
-            red += r;
-            green += g;
-            blue += b;
-
-            sums = r + g + b;
-            if (sums <= min_intensity) {
-                min_intensity = sums;
-                minR = r;
-                minG = g;
-                minB = b;
-            } else if (sums > max_intensity) {
-                max_intensity = sums;
-                maxR = r;
-                maxG = g;
-                maxB = b;
-            }
-
-            r = *(data + 3);
-            g = *(data + 4);
-            b = *(data + 5);
-            red += r;
-            green += g;
-            blue += b;
-
-            sums = r + g + b;
-            if (sums <= min_intensity) {
-                min_intensity = sums;
-                minR = r;
-                minG = g;
-                minB = b;
-            } else if (sums > max_intensity) {
-                max_intensity = sums;
-                maxR = r;
-                maxG = g;
-                maxB = b;
-            }
+            maxiR = ((red2 + red - minR - maxR) / 7);
+            maxiG = ((green2 + green - minG - maxG) / 7);
+            maxiB = ((blue2 + blue - minB - maxB) / 7);
+            (*(dest + 3)) = (maxiR < 255 ? maxiR : 255);
+            (*(dest + 4)) = (maxiG < 255 ? maxiG : 255);
+            (*(dest + 5)) = (maxiB < 255 ? maxiB : 255);
 
 
-            r = *(dataAfter - 3);
-            g = *(dataAfter - 2);
-            b = *(dataAfter - 1);
-            red += r;
-            green += g;
-            blue += b;
+            data += 6;
+            dest += 6;
+            dataBefore += 6;
+            dataAfter += 6;
 
-            sums = r + g + b;
-            if (sums <= min_intensity) {
-                min_intensity = sums;
-                minR = r;
-                minG = g;
-                minB = b;
-            } else if (sums > max_intensity) {
-                max_intensity = sums;
-                maxR = r;
-                maxG = g;
-                maxB = b;
-            }
-
-            r = *dataAfter;
-            g = *(dataAfter + 1);
-            b = *(dataAfter + 2);
-            red += r;
-            green += g;
-            blue += b;
-
-            sums = r + g + b;
-            if (sums <= min_intensity) {
-                min_intensity = sums;
-                minR = r;
-                minG = g;
-                minB = b;
-            } else if (sums > max_intensity) {
-                max_intensity = sums;
-                maxR = r;
-                maxG = g;
-                maxB = b;
-            }
-
-            r = *(dataAfter + 3);
-            g = *(dataAfter + 4);
-            b = *(dataAfter + 5);
-            red += r;
-            green += g;
-            blue += b;
-
-            sums = r + g + b;
-            if (sums <= min_intensity) {
-                min_intensity = sums;
-                minR = r;
-                minG = g;
-                minB = b;
-            } else if (sums > max_intensity) {
-                max_intensity = sums;
-                maxR = r;
-                maxG = g;
-                maxB = b;
-            }
-
-
-            red -= minR;
-            red -= maxR;
-            green -= minG;
-            green -= maxG;
-            blue -= minB;
-            blue -= maxB;
-
-
-            // divide by kernel's weight
-            red = red / 7;
-            green = green / 7;
-            blue = blue / 7;
-
-            //*******************************************************************
-            // optimization- reduce call to max and min on the stack
-            //*******************************************************************
-            // truncate each pixel's color values to match the range [0,255]
-            maxi = (red > 0 ? red : 0);
-            (*dest) = (maxi < 255 ? maxi : 255);
-            maxi = (green > 0 ? green : 0);
-            (*(dest + 1)) = (maxi < 255 ? maxi : 255);
-            maxi = (blue > 0 ? blue : 0);
-            (*(dest + 2)) = (maxi < 255 ? maxi : 255);
-
-
-            data += 3;
-            dest += 3;
-            dataBefore += 3;
-            dataAfter += 3;
         }
 
 
-
-
-        for (j = until22; j > 0; j--) {
+        if (until22 != 0) {
 
             r = *(dataBefore - 3);
             g = *(dataBefore - 2);
@@ -1113,12 +1005,9 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
             // optimization- reduce call to max and min on the stack
             //*******************************************************************
             // truncate each pixel's color values to match the range [0,255]
-            maxi = (red > 0 ? red : 0);
-            (*dest) = (maxi < 255 ? maxi : 255);
-            maxi = (green > 0 ? green : 0);
-            (*(dest + 1)) = (maxi < 255 ? maxi : 255);
-            maxi = (blue > 0 ? blue : 0);
-            (*(dest + 2)) = (maxi < 255 ? maxi : 255);
+            (*dest) = (red < 255 ? red : 255);
+            (*(dest + 1)) = (green < 255 ? green : 255);
+            (*(dest + 2)) = (blue < 255 ? blue : 255);
 
 
             data += 3;
@@ -1233,7 +1122,7 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
 //    (*(int *) dest) = (*(int *) data);
     data += 3;
     dest += 3;
-    register int_fast16_t i, j, until = mm - 2, until2 = until - 1;
+    register int_fast16_t i, j, until = mm - 2, until2 = (until - 2) / 4, until24 = (until - 2) % 4;
     for (i = until; i > 0; i--) {
         register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
         register int_fast16_t red, green, blue , red9, green9, blue9, red9R, green9R, blue9R;
@@ -1296,6 +1185,52 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
         dest += 3;
         dataBefore += 3;
         dataAfter += 3;
+
+
+
+
+
+        dataBefore += 3;
+        dataAfter += 3;
+        redL = redM + red9;
+        redM = redR;
+        greenL = greenM + green9;
+        greenM = greenR;
+        blueL = blueM + blue9;
+        blueM = blueR;
+        red9 = red9R;
+        green9 = green9R;
+        blue9 = blue9R;
+
+        redR = -(*dataBefore);
+        greenR = -(*(dataBefore + 1));
+        blueR = -(*(dataBefore + 2));
+
+        red9R = -(*(data + 3));
+        green9R = -(*(data + 4));
+        blue9R = -(*(data + 5));
+
+        redR -= *dataAfter;
+        greenR -= *(dataAfter + 1);
+        blueR -= *(dataAfter + 2);
+
+
+        red = (redL + redM + ((-red9) << 3) - red9 + redR + red9R);
+        green = (greenL + greenM + ((-green9) << 3) - green9 + greenR + green9R);
+        blue = (blueL + blueM + ((-blue9) << 3) - blue9 + blueR + blue9R);
+
+
+        maxi = (red > 0 ? red : 0);
+        (*dest) = (maxi < 255 ? maxi : 255);
+        maxi = (green > 0 ? green : 0);
+        (*(dest + 1)) = (maxi < 255 ? maxi : 255);
+        maxi = (blue > 0 ? blue : 0);
+        (*(dest + 2)) = (maxi < 255 ? maxi : 255);
+
+
+        data += 3;
+        dest += 3;
+
         for (j = until2; j > 0; j--) {
 
             dataBefore += 3;
@@ -1306,6 +1241,9 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
             greenM = greenR;
             blueL = blueM + blue9;
             blueM = blueR;
+            red9 = red9R;
+            green9 = green9R;
+            blue9 = blue9R;
 
             redR = -(*dataBefore);
             greenR = -(*(dataBefore + 1));
@@ -1319,9 +1257,183 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
             greenR -= *(dataAfter + 1);
             blueR -= *(dataAfter + 2);
 
-            red9 = -(*data);
-            green9 = -(*(data + 1));
-            blue9 = -*((data + 2));
+
+            red = (redL + redM + ((-red9) << 3) - red9 + redR + red9R);
+            green = (greenL + greenM + ((-green9) << 3) - green9 + greenR + green9R);
+            blue = (blueL + blueM + ((-blue9) << 3) - blue9 + blueR + blue9R);
+
+
+            maxi = (red > 0 ? red : 0);
+            (*dest) = (maxi < 255 ? maxi : 255);
+            maxi = (green > 0 ? green : 0);
+            (*(dest + 1)) = (maxi < 255 ? maxi : 255);
+            maxi = (blue > 0 ? blue : 0);
+            (*(dest + 2)) = (maxi < 255 ? maxi : 255);
+
+
+            data += 3;
+            dest += 3;
+
+
+
+
+
+            dataBefore += 3;
+            dataAfter += 3;
+            redL = redM + red9;
+            redM = redR;
+            greenL = greenM + green9;
+            greenM = greenR;
+            blueL = blueM + blue9;
+            blueM = blueR;
+            red9 = red9R;
+            green9 = green9R;
+            blue9 = blue9R;
+
+            redR = -(*dataBefore);
+            greenR = -(*(dataBefore + 1));
+            blueR = -(*(dataBefore + 2));
+
+            red9R = -(*(data + 3));
+            green9R = -(*(data + 4));
+            blue9R = -(*(data + 5));
+
+            redR -= *dataAfter;
+            greenR -= *(dataAfter + 1);
+            blueR -= *(dataAfter + 2);
+
+
+            red = (redL + redM + ((-red9) << 3) - red9 + redR + red9R);
+            green = (greenL + greenM + ((-green9) << 3) - green9 + greenR + green9R);
+            blue = (blueL + blueM + ((-blue9) << 3) - blue9 + blueR + blue9R);
+
+
+            maxi = (red > 0 ? red : 0);
+            (*dest) = (maxi < 255 ? maxi : 255);
+            maxi = (green > 0 ? green : 0);
+            (*(dest + 1)) = (maxi < 255 ? maxi : 255);
+            maxi = (blue > 0 ? blue : 0);
+            (*(dest + 2)) = (maxi < 255 ? maxi : 255);
+
+
+            data += 3;
+            dest += 3;
+
+
+
+
+            dataBefore += 3;
+            dataAfter += 3;
+            redL = redM + red9;
+            redM = redR;
+            greenL = greenM + green9;
+            greenM = greenR;
+            blueL = blueM + blue9;
+            blueM = blueR;
+            red9 = red9R;
+            green9 = green9R;
+            blue9 = blue9R;
+
+            redR = -(*dataBefore);
+            greenR = -(*(dataBefore + 1));
+            blueR = -(*(dataBefore + 2));
+
+            red9R = -(*(data + 3));
+            green9R = -(*(data + 4));
+            blue9R = -(*(data + 5));
+
+            redR -= *dataAfter;
+            greenR -= *(dataAfter + 1);
+            blueR -= *(dataAfter + 2);
+
+
+            red = (redL + redM + ((-red9) << 3) - red9 + redR + red9R);
+            green = (greenL + greenM + ((-green9) << 3) - green9 + greenR + green9R);
+            blue = (blueL + blueM + ((-blue9) << 3) - blue9 + blueR + blue9R);
+
+
+            maxi = (red > 0 ? red : 0);
+            (*dest) = (maxi < 255 ? maxi : 255);
+            maxi = (green > 0 ? green : 0);
+            (*(dest + 1)) = (maxi < 255 ? maxi : 255);
+            maxi = (blue > 0 ? blue : 0);
+            (*(dest + 2)) = (maxi < 255 ? maxi : 255);
+
+
+            data += 3;
+            dest += 3;
+
+
+
+
+
+            dataBefore += 3;
+            dataAfter += 3;
+            redL = redM + red9;
+            redM = redR;
+            greenL = greenM + green9;
+            greenM = greenR;
+            blueL = blueM + blue9;
+            blueM = blueR;
+            red9 = red9R;
+            green9 = green9R;
+            blue9 = blue9R;
+
+            redR = -(*dataBefore);
+            greenR = -(*(dataBefore + 1));
+            blueR = -(*(dataBefore + 2));
+
+            red9R = -(*(data + 3));
+            green9R = -(*(data + 4));
+            blue9R = -(*(data + 5));
+
+            redR -= *dataAfter;
+            greenR -= *(dataAfter + 1);
+            blueR -= *(dataAfter + 2);
+
+
+            red = (redL + redM + ((-red9) << 3) - red9 + redR + red9R);
+            green = (greenL + greenM + ((-green9) << 3) - green9 + greenR + green9R);
+            blue = (blueL + blueM + ((-blue9) << 3) - blue9 + blueR + blue9R);
+
+
+            maxi = (red > 0 ? red : 0);
+            (*dest) = (maxi < 255 ? maxi : 255);
+            maxi = (green > 0 ? green : 0);
+            (*(dest + 1)) = (maxi < 255 ? maxi : 255);
+            maxi = (blue > 0 ? blue : 0);
+            (*(dest + 2)) = (maxi < 255 ? maxi : 255);
+
+
+            data += 3;
+            dest += 3;
+        }
+
+        for (j = until24; j > 0; j--) {
+
+            dataBefore += 3;
+            dataAfter += 3;
+            redL = redM + red9;
+            redM = redR;
+            greenL = greenM + green9;
+            greenM = greenR;
+            blueL = blueM + blue9;
+            blueM = blueR;
+            red9 = red9R;
+            green9 = green9R;
+            blue9 = blue9R;
+
+            redR = -(*dataBefore);
+            greenR = -(*(dataBefore + 1));
+            blueR = -(*(dataBefore + 2));
+
+            red9R = -(*(data + 3));
+            green9R = -(*(data + 4));
+            blue9R = -(*(data + 5));
+
+            redR -= *dataAfter;
+            greenR -= *(dataAfter + 1);
+            blueR -= *(dataAfter + 2);
 
 
             red = (redL + redM + ((-red9) << 3) - red9 + redR + red9R);
