@@ -163,10 +163,10 @@
 // apply1- does blur (unfiltered)
 void apply1(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
 
-    // optimization- uses register, int_fast16_t and uses pointer increment and not indexes
+    // optimization- uses register, and uses pointer increment and not indexes
     register unsigned char *data = data1, *dest = dest1;
     register int m3 = mm3;
-    register int_fast16_t i, j, until = mm - 2, until2 = (until - 4) / 2, until22 = (until - 4) % 2;
+    register int i, j, until = mm - 2, until2 = (until - 4) / 2, until22 = (until - 4) % 2;
 
     // optimization- get 4 bytes on one time (the last is override)
     (*(int *) dest) = (*(int *) data);
@@ -176,10 +176,10 @@ void apply1(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
     // optimization- loop unrolling 4 times before the inner loop,
     // and also change the algorithm- dynamic programming- do 2 center pixels every inner loop less memory calls
     for (i = until; i > 0; i--) {
-        register int_fast16_t red, green, blue;
+        register int red, green, blue;
         register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
-        register int_fast16_t redL, greenL, blueL, redM, greenM, blueM, redR, greenR, blueR;
-        register int_fast16_t redRR, greenRR, blueRR, sumR, sumG, sumB;
+        register int redL, greenL, blueL, redM, greenM, blueM, redR, greenR, blueR;
+        register int redRR, greenRR, blueRR, sumR, sumG, sumB;
 
         redL = *(dataBefore - 3);
         greenL = *(dataBefore - 2);
@@ -459,13 +459,13 @@ void apply1(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
 // apply1- does blur (filtered)
 void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
 
-    // optimization- uses register, int_fast16_t and uses pointer increment and not indexes
+    // optimization- uses register, and uses pointer increment and not indexes
     register unsigned char *data = data1, *dest = dest1;
     register int m3 = mm3;
-    register int_fast16_t i, j, until = mm - 2, until2 = until / 2, until22 = until % 2;
-    register int_fast16_t red, green, blue, red1, red2, green1, green2, blue1, blue2;
-    register int_fast16_t r, g, b, sums;
-    register int_fast16_t max_intensity, min_intensity, max_intensity1, min_intensity1;
+    register int i, j, until = mm - 2, until2 = until / 2, until22 = until % 2;
+    register int red, green, blue, red1, red2, green1, green2, blue1, blue2;
+    register int r, g, b, sums;
+    register int max_intensity, min_intensity, max_intensity1, min_intensity1;
 
     // optimization- get 4 bytes on one time (the last is override)
     (*(int *) dest) = (*(int *) data);
@@ -476,8 +476,8 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
     // optimization- loop unrolling and also change the algorithm-
     // dynamic programming- do 2 center pixels every inner loop less memory calls
     for (i = until; i > 0; i--) {
-        register int_fast16_t maxR, maxG, maxB, minR, minG, minB;
-        register int_fast16_t maxR1, maxG1, maxB1, minR1, minG1, minB1;
+        register int maxR, maxG, maxB, minR, minG, minB;
+        register int maxR1, maxG1, maxB1, minR1, minG1, minB1;
 
         for (j = until2; j > 0; j--) {
 
@@ -849,7 +849,7 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
                 maxB = b;
             }
 
-            register int_fast16_t maxiR, maxiG, maxiB;
+            register int maxiR, maxiG, maxiB;
 
             // fewer calculation- in one time
             maxiR = ((red1 + red - minR1 - maxR1) / 7);
@@ -1101,7 +1101,7 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
 void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sharpRsltImgName,
                 char* filteredBlurRsltImgName, char* filteredSharpRsltImgName, char flag) {
 
-    // optimization- uses register, int_fast16_t and uses pointer increment and not indexes
+    // optimization- uses register, and uses pointer increment and not indexes
     // use shifts and not multiply
     register int mm = m, m3 = mm + (mm << 1), mn3 = m3 * mm;
     register unsigned char *dest = (unsigned char *) malloc(mn3);
@@ -1210,7 +1210,7 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
     dest = src1 + m3;
     data = dest1 + m3;
 
-    register int_fast16_t i, j, until = mm - 2, until2 = (until - 2) / 2, until22 = (until - 2) % 2;
+    register int i, j, until = mm - 2, until2 = (until - 2) / 2, until22 = (until - 2) % 2;
     data += 3;
     dest += 3;
 
@@ -1219,8 +1219,8 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
     // (the right columns)- less memory call and calculations
     for (i = until; i > 0; i--) {
         register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
-        register int_fast16_t red, green, blue , red9, green9, blue9, red9R, green9R, blue9R;
-        register int_fast16_t redL, greenL, blueL, redM, greenM, blueM, redR, greenR, blueR;
+        register int red, green, blue , red9, green9, blue9, red9R, green9R, blue9R;
+        register int redL, greenL, blueL, redM, greenM, blueM, redR, greenR, blueR;
 
 
         redL = -*(dataBefore - 3);
@@ -1268,7 +1268,7 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
         blue = (blueL + blueM + ((-blue9) << 3) - blue9 + blueR + blue9R);
 
 
-        register int_fast16_t maxi = (red > 0 ? red : 0);
+        register int maxi = (red > 0 ? red : 0);
         (*dest) = (maxi < 255 ? maxi : 255);
         maxi = (green > 0 ? green : 0);
         (*(dest + 1)) = (maxi < 255 ? maxi : 255);
