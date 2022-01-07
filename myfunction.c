@@ -3,6 +3,9 @@
 
 #include <stdbool.h>
 #include <stdlib.h>
+
+extern void writeBMP(Image *image, const char* originalImgFileName, const char* fileName);
+
 //#include <string.h>
 //#include <sys/types.h>
 //#include <fcntl.h>
@@ -160,26 +163,25 @@
 //    return NULL;
 //}
 
+
 // apply1- does blur (unfiltered)
-void apply1(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
+void apply1(register unsigned char * data, register unsigned char * dest, register int m3, register int mm) {
 
     // optimization- uses register, and uses pointer increment and not indexes
-    register unsigned char *data = data1, *dest = dest1;
-    register int m3 = mm3;
-    register int i, j, until = mm - 2, until2 = (until - 4) / 2, until22 = (until - 4) % 2;
+    register int j, until = mm - 2, until2 = (until - 4) / 2, until22 = (until - 4) % 2;
 
     // optimization- get 4 bytes on one time (the last is override)
     (*(int *) dest) = (*(int *) data);
     data += 3;
     dest += 3;
+    register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
+    register int red, green, blue;
+    register int redL, greenL, blueL, redM, greenM, blueM, redR, greenR, blueR;
+    register int redRR, greenRR, blueRR, sumR, sumG, sumB;
 
     // optimization- loop unrolling 4 times before the inner loop,
     // and also change the algorithm- dynamic programming- do 2 center pixels every inner loop less memory calls
-    for (i = until; i > 0; i--) {
-        register int red, green, blue;
-        register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
-        register int redL, greenL, blueL, redM, greenM, blueM, redR, greenR, blueR;
-        register int redRR, greenRR, blueRR, sumR, sumG, sumB;
+    for (; until > 0; until--) {
 
         redL = *(dataBefore - 3);
         greenL = *(dataBefore - 2);
@@ -453,31 +455,32 @@ void apply1(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
         (*(long *) dest) = (*(long *) data);
         data += 6;
         dest += 6;
+        dataAfter += 6;
+        dataBefore += 6;
     }
 }
 
 // apply1- does blur (filtered)
-void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
+void apply2(register unsigned char * data, register unsigned char * dest, register int m3, register int mm) {
 
     // optimization- uses register, and uses pointer increment and not indexes
-    register unsigned char *data = data1, *dest = dest1;
-    register int m3 = mm3;
-    register int i, j, until = mm - 2, until2 = until / 2, until22 = until % 2;
-    register int red, green, blue, red1, red2, green1, green2, blue1, blue2;
-    register int r, g, b, sums;
-    register int max_intensity, min_intensity, max_intensity1, min_intensity1;
+    register int until = mm - 2, j, until2 = until / 2, until22 = until % 2;
 
     // optimization- get 4 bytes on one time (the last is override)
     (*(int *) dest) = (*(int *) data);
     data += 3;
     dest += 3;
     register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
+    register int red, green, blue, red1, red2, green1, green2, blue1, blue2;
+    register int r, g, b, sums;
+    register int max_intensity, min_intensity, max_intensity1, min_intensity1;
+    register int maxR, maxG, maxB, minR, minG, minB;
+    register int maxR1, maxG1, maxB1, minR1, minG1, minB1;
+    register int maxiR, maxiG, maxiB;
 
     // optimization- loop unrolling and also change the algorithm-
     // dynamic programming- do 2 center pixels every inner loop less memory calls
-    for (i = until; i > 0; i--) {
-        register int maxR, maxG, maxB, minR, minG, minB;
-        register int maxR1, maxG1, maxB1, minR1, minG1, minB1;
+    for (; until > 0; until--) {
 
         for (j = until2; j > 0; j--) {
 
@@ -849,8 +852,6 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
                 maxB = b;
             }
 
-            register int maxiR, maxiG, maxiB;
-
             // fewer calculation- in one time
             maxiR = ((red1 + red - minR1 - maxR1) / 7);
             maxiG = ((green1 + green - minG1 - maxG1) / 7);
@@ -1091,6 +1092,35 @@ void apply2(unsigned char * data1, unsigned char * dest1, int mm3, int mm) {
     }
 }
 
+// created the most optimized mem_copy created ever! after a lot of optimizations,
+// with loop unrolling 8 times, and use long pointers
+// use shifts and not multiply
+void mem_copy(register unsigned char *data, register unsigned char *dest, register int size) {
+    register int words = size / 8, aligned_size = (words << 3), offset = size - aligned_size;
+    register int pages = words / 8, offset2 = words - (pages << 3);
+    register long *src64 = (long *) data, *dst64 = (long *) dest;
+
+    while (pages--) {
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+    }
+    while (offset2--)
+        *(dst64++) = *(src64++);
+
+    if (offset) {
+        data += aligned_size;
+        dest += aligned_size;
+        while (offset--)
+            *(dest++) = *(data++);
+    }
+}
+
 // my function optimized- don't use pixels and sum pixel- less memory call,
 // all in 3 functions- fewer functions on the stack, use of registers and simple calculations- without multiply,
 // uses pointer increment and not indexes,
@@ -1108,33 +1138,8 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
     register unsigned char *data = (unsigned char *) image->data, *src1 = data, *dest1 = dest;
     image->data = (char *)dest1;
 
-    // created the most optimized mem_copy created ever! after a lot of optimizations,
-    // with loop unrolling 8 times, and use long pointers
-    // this mem copy is only fo the m*3 first bytes (the first line)
-    // use shifts and not multiply
-    register int size = m3, words = size / 8, aligned_size = (words << 3), offset = size - aligned_size;
-    register int pages = words / 8, offset2 = words - (pages << 3);
-    register long *src64 = (long *) src1, *dst64 = (long *) dest1;
-
-    while (pages--) {
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-    }
-    while (offset2--)
-        *(dst64++) = *(src64++);
-
-    if (offset) {
-        data += aligned_size;
-        dest += aligned_size;
-        while (offset--)
-            *(dest++) = *(data++);
-    }
+    // this mem copy is only for the m*3 first bytes (the first line)
+    mem_copy(data, dest, m3);
 
     // blur image (with or without filter)
     data = src1 + m3;
@@ -1149,37 +1154,8 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
         apply2(data, dest, m3, mm);
     }
 
-    // created the most optimized mem_copy created ever! after a lot of optimizations,
-    // with loop unrolling 8 times, and use long pointers
-    // this mem copy is only fo the m*3 last bytes (the last line)
-    offset = size - aligned_size;
-    pages = words / 8;
-
-    // use shifts and not multiply
-    offset2 = words - (pages << 3);
-    data = src1 + mn3 - m3;
-    dest = dest1 + mn3 - m3;
-    src64 = (long *) data;
-    dst64 = (long *) dest;
-    while (pages--) {
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-    }
-    while (offset2--)
-        *(dst64++) = *(src64++);
-
-    if (offset) {
-        data += aligned_size;
-        dest += aligned_size;
-        while (offset--)
-            *(dest++) = *(data++);
-    }
+    // this mem copy is only for the m*3 last bytes (the last line)
+    mem_copy(src1 + mn3 - m3, dest1 + mn3 - m3, m3);
 
 
     // write blur image (with or without filter)
@@ -1210,18 +1186,17 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
     dest = src1 + m3;
     data = dest1 + m3;
 
-    register int i, j, until = mm - 2, until2 = (until - 2) / 2, until22 = (until - 2) % 2;
+    register int j, until = mm - 2, until2 = (until - 2) / 2, until22 = (until - 2) % 2;
     data += 3;
     dest += 3;
+    register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
+    register int maxi, red, green, blue , red9, green9, blue9, red9R, green9R, blue9R;
+    register int redL, greenL, blueL, redM, greenM, blueM, redR, greenR, blueR;
 
     // optimization- loop unrolling 2 times before the inner loop,
     // and also change the algorithm- dynamic programming- do the sum of the columns and save them for the next pixel
     // (the right columns)- less memory call and calculations
-    for (i = until; i > 0; i--) {
-        register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
-        register int red, green, blue , red9, green9, blue9, red9R, green9R, blue9R;
-        register int redL, greenL, blueL, redM, greenM, blueM, redR, greenR, blueR;
-
+    for (; until > 0; until--) {
 
         redL = -*(dataBefore - 3);
         greenL = -*(dataBefore - 2);
@@ -1268,7 +1243,7 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
         blue = (blueL + blueM + ((-blue9) << 3) - blue9 + blueR + blue9R);
 
 
-        register int maxi = (red > 0 ? red : 0);
+        maxi = (red > 0 ? red : 0);
         (*dest) = (maxi < 255 ? maxi : 255);
         maxi = (green > 0 ? green : 0);
         (*(dest + 1)) = (maxi < 255 ? maxi : 255);
@@ -1468,6 +1443,8 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
         }
         data += 6;
         dest += 6;
+        dataBefore += 6;
+        dataAfter += 6;
     }
 
     //pthread_join(thread_id, NULL);

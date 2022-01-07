@@ -4,7 +4,7 @@ run: showBMP
 	./showBMP gibson_500.bmp 1
 
 showBMP: showBMP.o readBMP.o writeBMP.o
-	gcc -o showBMP readBMP.o writeBMP.o showBMP.o $(LDLIBS)
+	gcc -pg -o showBMP readBMP.o writeBMP.o showBMP.o $(LDLIBS)
 
 readBMP.o: readBMP.c readBMP.h
 	gcc -o readBMP.o -c readBMP.c
