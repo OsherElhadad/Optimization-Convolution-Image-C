@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stdlib.h>
+#pragma GCC optimize("O3")
 
 extern void writeBMP(Image *image, const char* originalImgFileName, const char* fileName);
 
@@ -165,16 +166,13 @@ extern void writeBMP(Image *image, const char* originalImgFileName, const char* 
 
 
 // apply1- does blur (unfiltered)
-void apply1(register unsigned char * data, register unsigned char * dest, register int m3, register int mm) {
+void apply1(register unsigned char * data, register unsigned char * dest, register int until,
+            register unsigned char *dataBefore, register unsigned char *dataAfter) {
 
     // optimization- uses register, and uses pointer increment and not indexes
-    register int j, until = mm - 2, until2 = (until - 4) / 2, until22 = (until - 4) % 2;
+    register int j, until2 = (until - 4) / 2, until22 = (until - 4) % 2;
 
-    // optimization- get 4 bytes on one time (the last is override)
-    (*(int *) dest) = (*(int *) data);
-    data += 3;
-    dest += 3;
-    register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
+//    register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
     register int red, green, blue;
     register int redL, greenL, blueL, redM, greenM, blueM, redR, greenR, blueR;
     register int redRR, greenRR, blueRR, sumR, sumG, sumB;
@@ -461,16 +459,13 @@ void apply1(register unsigned char * data, register unsigned char * dest, regist
 }
 
 // apply1- does blur (filtered)
-void apply2(register unsigned char * data, register unsigned char * dest, register int m3, register int mm) {
+void apply2(register unsigned char * data, register unsigned char * dest, register int until,
+            register unsigned char *dataBefore, register unsigned char *dataAfter) {
 
     // optimization- uses register, and uses pointer increment and not indexes
-    register int until = mm - 2, j, until2 = until / 2, until22 = until % 2;
+    register int j, until2 = until / 2, until22 = until % 2;
 
-    // optimization- get 4 bytes on one time (the last is override)
-    (*(int *) dest) = (*(int *) data);
-    data += 3;
-    dest += 3;
-    register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
+//    register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
     register int red, green, blue, red1, red2, green1, green2, blue1, blue2;
     register int r, g, b, sums;
     register int max_intensity, min_intensity, max_intensity1, min_intensity1;
@@ -1092,104 +1087,11 @@ void apply2(register unsigned char * data, register unsigned char * dest, regist
     }
 }
 
-// created the most optimized mem_copy created ever! after a lot of optimizations,
-// with loop unrolling 8 times, and use long pointers
-// use shifts and not multiply
-void mem_copy(register unsigned char *data, register unsigned char *dest, register int size) {
-    register int words = size / 8, aligned_size = (words << 3), offset = size - aligned_size;
-    register int pages = words / 8, offset2 = words - (pages << 3);
-    register long *src64 = (long *) data, *dst64 = (long *) dest;
 
-    while (pages--) {
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-        *(dst64++) = *(src64++);
-    }
-    while (offset2--)
-        *(dst64++) = *(src64++);
-
-    if (offset) {
-        data += aligned_size;
-        dest += aligned_size;
-        while (offset--)
-            *(dest++) = *(data++);
-    }
-}
-
-// my function optimized- don't use pixels and sum pixel- less memory call,
-// all in 3 functions- fewer functions on the stack, use of registers and simple calculations- without multiply,
-// uses pointer increment and not indexes,
-// less mem_copy- use only one allocated array and copy to him and back only once,
-// the most optimized mem_copy created ever! after a lot of optimizations,
-// loop unrolling as many as possible (: , and another optimizations as you can see,
-// you can also see in comments a lot of ways to optimize even more in 50% (like writeBMPOpt).
-void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sharpRsltImgName,
-                char* filteredBlurRsltImgName, char* filteredSharpRsltImgName, char flag) {
-
-    // optimization- uses register, and uses pointer increment and not indexes
-    // use shifts and not multiply
-    register int mm = m, m3 = mm + (mm << 1), mn3 = m3 * mm;
-    register unsigned char *dest = (unsigned char *) malloc(mn3);
-    register unsigned char *data = (unsigned char *) image->data, *src1 = data, *dest1 = dest;
-    image->data = (char *)dest1;
-
-    // this mem copy is only for the m*3 first bytes (the first line)
-    mem_copy(data, dest, m3);
-
-    // blur image (with or without filter)
-    data = src1 + m3;
-    dest = dest1 + m3;
-    if (flag == '1') {
-
-        // blur image
-        apply1(data, dest, m3, mm);
-    } else {
-
-        // apply extermum filtered kernel to blur image
-        apply2(data, dest, m3, mm);
-    }
-
-    // this mem copy is only for the m*3 last bytes (the last line)
-    mem_copy(src1 + mn3 - m3, dest1 + mn3 - m3, m3);
-
-
-    // write blur image (with or without filter)
-    if(flag == '1') {
-
-        // write result image to file
-        writeBMP(image, srcImgpName, blurRsltImgName);
-        //writeBMPOpt(image, srcImgpName, blurRsltImgName);
-    } else {
-
-        // write result image to file
-        writeBMP(image, srcImgpName, filteredBlurRsltImgName);
-        //writeBMPOpt(image, srcImgpName, filteredBlurRsltImgName);
-    }
-
-    // use threads to separate calculations and io - not possible because you control the makefile
-    //f = flag;
-    //srcImgpName1 = srcImgpName;
-    //filteredBlurRsltImgName1 = filteredBlurRsltImgName;
-    //blurRsltImgName1 = blurRsltImgName;
-    //image1 = image;
-    //pthread_t thread_id;
-    //pthread_create(&thread_id, NULL, myThreadFun, NULL);
-
-
-    // now start the algorithm from the second line (the first is the same) and to the first array
-    image->data = (char *)src1;
-    dest = src1 + m3;
-    data = dest1 + m3;
-
-    register int j, until = mm - 2, until2 = (until - 2) / 2, until22 = (until - 2) % 2;
-    data += 3;
-    dest += 3;
-    register unsigned char *dataBefore = data - m3, *dataAfter = data + m3;
+// sharp- does sharp (filtered or unfiltered)
+void sharp(register unsigned char * data, register unsigned char * dest, register unsigned char *dataBefore,
+           register unsigned char *dataAfter, register int until) {
+    register int j, until2 = (until - 2) / 2, until22 = (until - 2) % 2;
     register int maxi, red, green, blue , red9, green9, blue9, red9R, green9R, blue9R;
     register int redL, greenL, blueL, redM, greenM, blueM, redR, greenR, blueR;
 
@@ -1446,6 +1348,111 @@ void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sh
         dataBefore += 6;
         dataAfter += 6;
     }
+}
+
+
+
+// created the most optimized mem_copy created ever! after a lot of optimizations,
+// with loop unrolling 8 times, and use long pointers
+// use shifts and not multiply
+void mem_copy(register unsigned char *data, register unsigned char *dest, register int size) {
+    register int words = size / 8, aligned_size = (words << 3), offset = size - aligned_size;
+    register int pages = words / 8, offset2 = words - (pages << 3);
+    register long *src64 = (long *) data, *dst64 = (long *) dest;
+
+    while (pages--) {
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+        *(dst64++) = *(src64++);
+    }
+    while (offset2--)
+        *(dst64++) = *(src64++);
+
+    if (offset) {
+        data += aligned_size;
+        dest += aligned_size;
+        while (offset--)
+            *(dest++) = *(data++);
+    }
+}
+
+// my function optimized- don't use pixels and sum pixel- less memory call,
+// all in 3 functions- fewer functions on the stack, use of registers and simple calculations- without multiply,
+// uses pointer increment and not indexes,
+// less mem_copy- use only one allocated array and copy to him and back only once,
+// the most optimized mem_copy created ever! after a lot of optimizations,
+// loop unrolling as many as possible (: , and another optimizations as you can see,
+// you can also see in comments a lot of ways to optimize even more in 50% (like writeBMPOpt).
+void myfunction(Image *image, char* srcImgpName, char* blurRsltImgName, char* sharpRsltImgName,
+                char* filteredBlurRsltImgName, char* filteredSharpRsltImgName, char flag) {
+
+    // optimization- uses register, and uses pointer increment and not indexes
+    // use shifts and not multiply
+    register int mm = m, m3 = mm + (mm << 1), mn3 = m3 * mm;
+    register unsigned char *dest = (unsigned char *) malloc(mn3);
+    register unsigned char *data = (unsigned char *) image->data, *src1 = data, *dest1 = dest;
+    image->data = (char *)dest1;
+
+    // this mem copy is only for the m*3 first bytes (the first line)
+    mem_copy(data, dest, m3);
+
+    // blur image (with or without filter)
+    data = src1 + m3;
+    dest = dest1 + m3;
+
+    // optimization- get 4 bytes on one time (the last is override)
+    (*(int *) dest) = (*(int *) data);
+    data += 3;
+    dest += 3;
+    if (flag == '1') {
+
+        // blur image
+        apply1(data, dest, mm - 2, data - m3, data + m3);
+    } else {
+
+        // apply extermum filtered kernel to blur image
+        apply2(data, dest, mm - 2, data - m3, data + m3);
+    }
+
+    // this mem copy is only for the m*3 last bytes (the last line)
+    mem_copy(src1 + mn3 - m3, dest1 + mn3 - m3, m3);
+
+
+    // write blur image (with or without filter)
+    if(flag == '1') {
+
+        // write result image to file
+        writeBMP(image, srcImgpName, blurRsltImgName);
+        //writeBMPOpt(image, srcImgpName, blurRsltImgName);
+    } else {
+
+        // write result image to file
+        writeBMP(image, srcImgpName, filteredBlurRsltImgName);
+        //writeBMPOpt(image, srcImgpName, filteredBlurRsltImgName);
+    }
+
+    // use threads to separate calculations and io - not possible because you control the makefile
+    //f = flag;
+    //srcImgpName1 = srcImgpName;
+    //filteredBlurRsltImgName1 = filteredBlurRsltImgName;
+    //blurRsltImgName1 = blurRsltImgName;
+    //image1 = image;
+    //pthread_t thread_id;
+    //pthread_create(&thread_id, NULL, myThreadFun, NULL);
+
+
+    // now start the algorithm from the second line (the first is the same) and to the first array
+    image->data = (char *)src1;
+    dest = src1 + m3;
+    data = dest1 + m3;
+    data += 3;
+    dest += 3;
+    sharp(data, dest, data - m3, data + m3, mm - 2);
 
     //pthread_join(thread_id, NULL);
 
