@@ -1,9 +1,19 @@
 // 318969748 Osher Elhadad
 // myfunction.c last modified on 07/01/2022
 
+// optimizations on the compiler and the cpu
+#pragma GCC optimize("O3,unroll-all-loops")
+
+// I found the cpuid on planet and found these feathers- with a program in assembly I built by myself:
+// fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse-36 clfsh mmx fxsr sse sse2 ss sse3
+// pclmulqdq ssse3 fma cx16 pcid sse4.1 sse4.2 x2apic movbe popcnt tsc-deadline
+// aes xsave osxsave avx f16c rdrnd hypervisor
+#pragma GCC target("aes,rdrnd")                          // encryption
+#pragma GCC target("f16c,fma,sse3,ssse3,sse4.1,sse4.2") // SIMD
+#pragma GCC target("popcnt")                            // bit manipulation
+
 #include <stdbool.h>
 #include <stdlib.h>
-#pragma GCC optimize("O3")
 
 extern void writeBMP(Image *image, const char* originalImgFileName, const char* fileName);
 
